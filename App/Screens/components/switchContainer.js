@@ -1,13 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
-const switchContainer = ({ title, icon, sliderValues, infoIcons }) => {
+const SwitchContainer = ({ title, icon, infoIcons, onLongPress }) => {
   return (
-    <View style={styles.deviceContainer}>
+    <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
       <View style={styles.cercle}>
-        <TouchableOpacity>
-          <Image source={icon} style={styles.icon} />
-        </TouchableOpacity>
+        <Image source={icon} style={styles.icon} />
       </View>
 
       <View style={styles.textContainer}>
@@ -20,20 +18,6 @@ const switchContainer = ({ title, icon, sliderValues, infoIcons }) => {
           <TouchableOpacity style={styles.offButton}>
             <Text style={styles.buttonText}>Off</Text>
           </TouchableOpacity>
-        </View>
-        
-        <View style={styles.sliderContainer}>
-          {sliderValues.map((value, index) => (
-            <Slider
-              key={index}
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={100}
-              value={value}
-              minimumTrackTintColor="#FFFFFF"
-              maximumTrackTintColor="#000000"
-            />
-          ))}
         </View>
       </View>
 
@@ -48,7 +32,7 @@ const switchContainer = ({ title, icon, sliderValues, infoIcons }) => {
           </View>
         ))}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -95,20 +79,22 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 12,
+    width: 120,
+    marginLeft: 30,
   },
   onButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 5,
     marginRight: 10,
-    backgroundColor: '#4CAF50', // Green color
+    backgroundColor: '#4CAF50',
     alignItems: 'center',
     borderRadius: 5,
   },
   offButton: {
     flex: 1,
-    paddingVertical: 10,
-    backgroundColor: '#F44336', // Red color
+    paddingVertical: 5,
+    backgroundColor: '#F44336',
     alignItems: 'center',
     borderRadius: 5,
   },
@@ -145,4 +131,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default switchContainer;
+export default SwitchContainer;

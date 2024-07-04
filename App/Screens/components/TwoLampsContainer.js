@@ -2,9 +2,9 @@ import React from 'react';
 import { View, TouchableOpacity, Image, StyleSheet, Text } from 'react-native';
 import Slider from '@react-native-community/slider';
 
-const TwoLampsContainer = ({ title, icon1,icon2, slider_1_Values,slider_2_Values, infoIcons }) => {
+const TwoLampsContainer = ({ title, icon1,icon2, slider_1_Values,slider_2_Values, infoIcons, onLongPress }) => {
   return (
-    <View style={styles.deviceContainer}>
+    <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
        
     <View style={styles.lampContainer}>
   <View style={styles.cercle}>
@@ -63,7 +63,7 @@ const TwoLampsContainer = ({ title, icon1,icon2, slider_1_Values,slider_2_Values
           </View>
         ))}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }; 
 

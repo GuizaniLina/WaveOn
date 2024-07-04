@@ -5,45 +5,42 @@ const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
 const downloadFile = async (idclient, iduser, token) => {
     try {
-        // Retrieve the lastUpdate value from AsyncStorage, or use a default value if not found
-        const lastUpdate = await AsyncStorage.getItem('lastUpdate') || '2019-10-01 01:01:01';
-       
-        // Prepare the request payload
-        
+        // Date de mise à jour initiale (date ancienne)
+        const initialDate = '2019-10-01 01:01:01';
 
-        console.log('Sending downloadFile request:',{
+        // Récupérer la dernière date de mise à jour stockée, sinon utiliser la date initiale
+        const lastUpdate = await AsyncStorage.getItem('lastUpdate') || initialDate;
+
+        // Préparer la charge utile de la requête
+        const requestPayload = {
             idclient,
             iduser,
             token,
-            lastUpdate,
+            lastupdate: lastUpdate,
             commandLastId: 0,
-            permissionsLastUpdate: lastUpdate,
-            roomsLastUpdate: lastUpdate,
-            automationLastUpdate: lastUpdate,
-           // securityLastUpdate: lastUpdate
-        });
+            permissionsLastUpdate: initialDate,
+            roomsLastUpdate: initialDate,
+            automationLastUpdate: initialDate,
+        };
 
-        // Send the POST request to the downloadFile endpoint
-        const response = await axios.post(`${BASE_URL}/downloadFile/`,{
-            idclient,
-            iduser,
-            token,
-            lastupdate :lastUpdate ,
-            commandLastId: 0,
-            permissionsLastUpdate: lastUpdate,
-            roomsLastUpdate: lastUpdate,
-            automationLastUpdate: lastUpdate,
-           // securityLastUpdate: lastUpdate
-        });
-       
-        // Check the response headers or body for the lastUpdate value
-        const serverLastUpdate = response.headers['lastupdate'] || response.data.lastupdate;
+        console.log('Sending downloadFile request:', requestPayload);
 
-        // Save the lastUpdate value to AsyncStorage
-        await AsyncStorage.setItem('lastUpdate', serverLastUpdate);
-        await AsyncStorage.setItem('nodes', JSON.stringify(response.data.nodes));
-        console.log('data json:',response.data.nodes );
-        console.log('File downloaded and lastUpdate saved:', serverLastUpdate);
+        // Envoyer la requête POST à l'endpoint downloadFile
+        const response = await axios.post(`${BASE_URL}/downloadFile/`, requestPayload);
+
+        // Récupérer la date de mise à jour du serveur
+        const serverLastUpdate = response.headers['lastupdate'] || lastUpdate;
+
+        // Si la date de mise à jour du serveur est différente de la date locale
+        if (serverLastUpdate !== lastUpdate) {
+            // Mettre à jour la date de mise à jour et les données des dispositifs
+            await AsyncStorage.setItem('lastUpdate', serverLastUpdate);
+            await AsyncStorage.setItem('nodes', JSON.stringify(response.data.nodes));
+            console.log('File downloaded and lastUpdate saved:', serverLastUpdate);
+        } else {
+            console.log('No update available. Using cached data.');
+        }
+
         return response.data;
     } catch (error) {
         console.error('Error downloading file:', error);

@@ -40,7 +40,7 @@ const Home = () => {
         } catch (error) {
             console.error('Erreur lors du parsing des données des salles:', error);
             Alert.alert('Erreur', 'Erreur lors de la récupération des données des salles');
-        }
+        } 
         
         try {
             if (typeof roomResponse.assignments === 'string') {

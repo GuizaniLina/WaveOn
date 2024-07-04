@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 
-const DeviceContainer = ({ title, icon, sliderValues, infoIcons }) => {
+const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress }) => {
   return (
-    <View style={styles.deviceContainer}>
+    <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
       <View style={styles.cercle}>
         <TouchableOpacity>
           <Image source={icon} style={styles.icon} />
@@ -35,7 +35,7 @@ const DeviceContainer = ({ title, icon, sliderValues, infoIcons }) => {
           </View>
         ))}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

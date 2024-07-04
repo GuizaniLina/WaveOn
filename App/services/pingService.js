@@ -24,11 +24,11 @@ const pingService = async (idclient, iduser, token) => {
         console.log('Sending ping request:', requestData);
 
         const response = await axios.post(`${BASE_URL}/ping/`, requestData);
+       
+       
 
-        const serverLastUpdate = response.headers['lastupdate'] || response.data.lastupdate;
-        console.log('Ping response received, serverLastUpdate:', serverLastUpdate);
 
-        if (serverLastUpdate > lastUpdate) {
+        if (response.data.networkUpdated == 0) {
             console.log('Newer version available. Downloading file...');
             await downloadFile(idclient, iduser, token);
         } else {
