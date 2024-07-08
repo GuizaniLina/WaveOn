@@ -8,6 +8,7 @@ import Home from './Home';
 import Groups from './Groups';
 import { useRef } from 'react';
 import moment from 'moment';
+import LottieView from 'lottie-react-native';
 const Tab = createMaterialBottomTabNavigator();
 
 
@@ -102,7 +103,12 @@ const Accueil = ({ navigation }) => {
           tabBarIcon: () => (
             
             <View style={styles.homeIconWrapper}>
-             <Image style={styles.image} source={require('../../assets/icons/home.png')} />
+             <LottieView
+        source={require('../../assets/lottiefile/robot_loading.json')} // Path to your Lottie animation file
+        autoPlay
+        loop
+        style={styles.animation}
+      />
        
             </View>
           
@@ -159,14 +165,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   weatherIcon: {
-    width: 25,
-    height: 25,
+    width: 35,
+    height: 35,
     marginRight: 5,
   },
   weatherText: {
     color: 'yellow',
     fontSize: 14,
     marginRight: 5,
+    fontWeight:'bold'
   },
   weatherDescription: {
     color: 'white',
@@ -175,7 +182,7 @@ const styles = StyleSheet.create({
   },
   homeIconWrapper: {
     position: 'absolute',
-    bottom: -30, // Adjust to position the central button higher
+    bottom: -28, // Adjust to position the central button higher
     left: '50%',
     transform: [{ translateX: -35 }], // Center align
     width: 70,
@@ -183,7 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#333',
     elevation: 5,
   },
   homeIcon: {
@@ -194,7 +201,11 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     marginRight: 5,
-  }
+  }, animation: {
+    width: 100,
+    height: 100,
+    
+  },
 });
 
 export default Accueil;

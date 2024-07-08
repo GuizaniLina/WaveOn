@@ -1,69 +1,99 @@
-import React, { useState } from 'react';
-import { View, Text,ImageBackground, StyleSheet, Switch, SafeAreaView, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, SafeAreaView, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import AutomationContainer from './components/AutomationContainer';
+import Automation from '../Class/Automation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import automationGetService from '../services/automationGetService';
+import LottieView from 'lottie-react-native';
 
-const Automation = ({ navigation }) => {
-  const [lightsEnabled, setLightsEnabled] = useState(false);
-  const [blindsEnabled, setBlindsEnabled] = useState(false);
-  const [hallwayLightsEnabled, setHallwayLightsEnabled] = useState(true);
-  const [temperatureNotificationEnabled, setTemperatureNotificationEnabled] = useState(false);
+const ICONS = {
+  '-2': require('../../assets/icons/mix.png'), // Mixed
+  '-1': require('../../assets/icons/appel.png'), // Phone
+  '0': require('../../assets/icons/lampe1.png'), // Lampe
+  '1': require('../../assets/icons/outlet.png'), // Outlet
+  '2': require('../../assets/icons/dual_lampe.png'), // Dual Lampe
+  '3': require('../../assets/icons/volet.png'), // Blinds
+  '5': require('../../assets/icons/dual_lampe.png'), // Micro Dual Bulb
+  '6': require('../../assets/icons/volet.png'), // Micro Blinds
+  '7': require('../../assets/icons/devices.png'), // Micro Switch Module
+  '8': require('../../assets/icons/default.png'), // Micro Gate Controller
+  // Ajoutez d'autres icônes si nécessaire
+};
+
+const AutomationScreen = () => {
+  const [automations, setAutomations] = useState([]);
+
+  useEffect(() => {
+    const fetchAutomation = async () => {
+      try {
+        const idclient = await AsyncStorage.getItem('idclient');
+        const iduser = await AsyncStorage.getItem('iduser');
+        const idNetwork = 1;
+        const token = await AsyncStorage.getItem('token');
+
+        const automationResponse = await automationGetService(idclient, iduser, idNetwork, token);
+        console.log('Automation data:', automationResponse);
+
+        const automationInstances = automationResponse.automations.map(autoData => new Automation(autoData));
+        setAutomations(automationInstances);
+      } catch (error) {
+        console.error('Erreur lors du parsing des données des automations:', error);
+        Alert.alert('Erreur', 'Erreur lors de la récupération des données des automations');
+      }
+    };
+
+    fetchAutomation();
+  }, []);
+
+  const handleToggleSwitch = (index) => {
+    setAutomations((prevAutomations) => {
+      const updatedAutomations = [...prevAutomations];
+      const automation = updatedAutomations[index];
+      if (automation instanceof Automation) {
+        automation.state = automation.isActive() ? 0 : 1;  // Toggle state
+        console.log(`Updated automation state: ${automation.state}`);
+      } else {
+        console.error('L’objet automation n’est pas une instance de la classe Automation.');
+      }
+      return updatedAutomations;
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-    
-      <Text style={styles.headerTitle}>Automation</Text>
-        </View>
-        <View style={styles.optionContainer}>
-        <Image source={require('../../assets/icons/lampe1.png')} style={styles.optionIcon} />
-        <Text style={styles.optionText}>Turn OFF all lights</Text>
-        <Switch
-          value={lightsEnabled}
-          onValueChange={setLightsEnabled}
-          trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={lightsEnabled ? '#f5dd4b' : '#f4f3f4'}
-          ios_backgroundColor="#3e3e3e"
-        />
+        <Text style={styles.headerTitle}>Automation</Text>
       </View>
 
-      <View style={styles.optionContainer}>
-        <Image source={require('../../assets/icons/volet.png')} style={styles.optionIcon} />
-        <Text style={styles.optionText}>Close all blinds</Text>
-        <Switch
-          value={blindsEnabled}
-          onValueChange={setBlindsEnabled}
-          trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={blindsEnabled ? '#f5dd4b' : '#f4f3f4'}
-          ios_backgroundColor="#3e3e3e"
-        />
-      </View>
+      <ScrollView>
+        {automations.map((automation, index) => {
+          if (automation instanceof Automation) {
+            return (
+              <AutomationContainer
+                key={index}
+                icon={ICONS[automation.targetType] || require('../../assets/icons/default.png')}
+                text={automation.name}
+                isEnabled={automation.isActive()}
+                toggleSwitch={() => handleToggleSwitch(index)}
+              />
+            );
+          } else {
+            console.error('L’objet automation n’est pas une instance de la classe Automation.');
+            return null;
+          }
+        })}
 
-      <View style={styles.optionContainer}>
-        <Image source={require('../../assets/icons/notification.png')} style={styles.optionIcon} />
-        <Text style={styles.optionText}>Turn On Hallway Lights at 19:30</Text>
-        <Switch
-          value={hallwayLightsEnabled}
-          onValueChange={setHallwayLightsEnabled}
-          trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={hallwayLightsEnabled ? '#f5dd4b' : '#f4f3f4'}
-          ios_backgroundColor="#3e3e3e"
-        />
-      </View>
+        
+      </ScrollView>
 
-      <View style={styles.optionContainer}>
-        <Image source={require('../../assets/icons/temperatures.png')} style={styles.optionIcon} />
-        <Text style={styles.optionText}>Temperature Notification  30°C</Text>
-        <Switch
-          value={temperatureNotificationEnabled}
-          onValueChange={setTemperatureNotificationEnabled}
-          trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={temperatureNotificationEnabled ? '#f5dd4b' : '#f4f3f4'}
-          ios_backgroundColor="#3e3e3e"
+      {/* Animation Lottie pour l'ajout */}
+      <View style={styles.addButtonContainer}>
+        <LottieView
+          source={require('../../assets/lottiefile/Add.json')}
+          autoPlay
+          loop
+          style={styles.lottie}
         />
-      </View>
-
-      <View style={styles.optionContainer}>
-        <Image source={require('../../assets/gif/ADD.gif')} style={styles.optionIcon} />
-        <Text style={styles.optionText}>New automation</Text>
       </View>
     </SafeAreaView>
   );
@@ -76,23 +106,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   header: {
-    backgroundColor : '#58c487',
+    backgroundColor: '#58c487',
     alignItems: 'center',
     borderBottomEndRadius: 35,
     borderBottomStartRadius: 35,
-    height : 120,
-    marginBottom :20
-    
-  },
-  icon: {
-    width: 24,
-    height: 24,
-    tintColor: '#FFF',
-  },
- 
-  connectText: {
-    fontSize: 16,
-    color: '#FFF',
+    height: 120,
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 35,
@@ -113,14 +132,25 @@ const styles = StyleSheet.create({
     marginRight: 20,
     tintColor: '#FFF',
   },
-  background:{
-    resizeMode: 'cover',
-  },
   optionText: {
     fontSize: 18,
     color: '#FFF',
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 100,  // Laissez un espace pour la vue fixe
+  },
+  addButtonContainer: {
+    position: 'absolute',
+    bottom: 15,
+    right: 15,
+    width: 60,
+    height: 60,
+  },
+  lottie: {
+    width: 70,
+    height: 70,
+  },
 });
 
-export default Automation;
+export default AutomationScreen;

@@ -35,7 +35,7 @@ const Signup = () => {
   };
 
   return (
-    <ImageBackground source={require('../../../assets/home2.jpg')} style={styles.background}>
+    <ImageBackground source={require('../../../assets/smart_home1.jpg')} style={styles.background}>
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
        
@@ -46,12 +46,14 @@ const Signup = () => {
       <TextInput
         style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}
         placeholder="Username"
+        placeholderTextColor={theme.textColor}
         autoCapitalize="none"
         onChangeText={username}
       />
       <TextInput
         style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}
         placeholder="Email"
+        placeholderTextColor={theme.textColor}
         keyboardType="email-address"
         autoCapitalize="none"
         value={email}
@@ -60,6 +62,7 @@ const Signup = () => {
       <View style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}>
         <TextInput
           placeholder="Password"
+          placeholderTextColor={theme.textColor}
           secureTextEntry={!passwordVisible}
           value={password}
           onChangeText={setPassword}
@@ -77,7 +80,8 @@ const Signup = () => {
       </View>
       <View style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}>
         <TextInput
-          placeholder="Set Password"
+          placeholder="Set Password Again"
+          placeholderTextColor={theme.textColor}
           secureTextEntry={!passwordVisible}
           value={password}
           onChangeText={verifPassword}
@@ -110,7 +114,7 @@ const Signup = () => {
           <Image source={require('../../../assets/icons/facebook.png')} style={styles.socialIcon} />
         </TouchableOpacity>
         <TouchableOpacity>
-          <Image source={require('../../../assets/icons/apple.png')} style={styles.socialIcon} />
+          <Image source={require('../../../assets/icons/apple.png')} style={[styles.socialIcon ,{tintColor:'white'}]} />
         </TouchableOpacity>
       </View>
     </View>
@@ -156,6 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
+    justifyContent:"center",
     width: '100%',
     height: 50,
     borderWidth: 1,

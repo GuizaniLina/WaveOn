@@ -3,6 +3,7 @@ import roomGetService from '../services/securityGetService';
 import { View, Text,ImageBackground, StyleSheet, Switch,Alert, SafeAreaView, Image, TouchableOpacity } from 'react-native';
 import securityGetService from '../services/securityGetService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LottieView from 'lottie-react-native';
 
 const Security = ({ navigation }) => {
 
@@ -63,6 +64,15 @@ const Security = ({ navigation }) => {
           />
         </View>
       ))}
+       {/* Animation Lottie pour l'ajout */}
+       <View style={styles.addButtonContainer}>
+        <LottieView
+          source={require('../../assets/lottiefile/Add.json')}
+          autoPlay
+          loop
+          style={styles.lottie}
+        />
+        </View>
     </SafeAreaView>
   );
 };
@@ -134,6 +144,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#FFF',
     flex: 1,
+  },
+  addButtonContainer: {
+    position: 'absolute',
+    bottom: 15,
+    right: 15,
+    width: 60,
+    height: 60,
+  },
+  lottie: {
+    width: 70,
+    height: 70,
   },
 });
 

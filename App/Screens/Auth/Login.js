@@ -84,7 +84,7 @@ const LoginScreen = () => {
   };
 
   return (
-    <ImageBackground source={require('../../../assets/home2.jpg')} style={styles.background}>
+    <ImageBackground source={require('../../../assets/smart_home1.jpg')} style={styles.background}>
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
        
@@ -95,6 +95,7 @@ const LoginScreen = () => {
         <TextInput
           style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}
           placeholder="Email"
+          placeholderTextColor={theme.textColor}
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -104,6 +105,7 @@ const LoginScreen = () => {
         <TextInput
           
           placeholder="Password"
+          placeholderTextColor={theme.textColor}
           secureTextEntry={!passwordVisible}
           value={password}
           onChangeText={setPassword}
@@ -175,13 +177,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-   
+   justifyContent:"center",
     width: '100%',
     height: 50,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 10,
     marginBottom: 15,
+    
   },
   loginButton: {
     width: '100%',

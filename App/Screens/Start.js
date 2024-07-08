@@ -14,7 +14,7 @@ const Start = () => {
   };
 
   return (
-    <ImageBackground source={require('../../assets/home2.jpg')} style={styles.background}>
+    <ImageBackground source={require('../../assets/smart_home1.jpg')} style={styles.background}>
       <View style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>Control Your House</Text>

@@ -109,5 +109,16 @@ export default class Node {
         if  (this.Batterie == null)  this.Batterie='--'  ;
         return this.Batterie;
       }
+
+      updateFromDevice(updatedDevice) {
+        this.temperature = updatedDevice.temperature;
+        this.humidity = updatedDevice.humidity;
+        this.Occupancy = updatedDevice.Occupancy;
+        this.Luminosity = updatedDevice.Luminosity;
+        this.Chrono = updatedDevice.Chrono;
+        this.Batterie = updatedDevice.Batterie;
+        this.Eclat = updatedDevice.Eclat;
+        
+      }
     }
   

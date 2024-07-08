@@ -4,6 +4,7 @@ import { View, Text, Image, StyleSheet, ScrollView, SafeAreaView,Alert, Touchabl
 import roomGetService from '../services/roomGetService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import LottieView from 'lottie-react-native';
 
 const Home = () => {
   const navigation = useNavigation();
@@ -123,7 +124,12 @@ const Home = () => {
       );
     })}
      <TouchableOpacity style={styles.card}>
-        <Image source={require('../../assets/gif/ADD.gif')} style={styles.Addicon}/>
+     <LottieView
+        source={require('../../assets/lottiefile/Add.json')} // Path to your Lottie animation file
+        autoPlay
+        loop
+        style={styles.Addicon}
+      />
      </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -170,6 +176,7 @@ const styles = StyleSheet.create({
   Addicon:{
     width: 100,
     height: 100,
+    
   
   },
   cardImage: {
