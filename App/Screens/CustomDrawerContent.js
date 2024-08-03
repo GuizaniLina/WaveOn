@@ -10,7 +10,8 @@ const CustomDrawerContent = (props) => {
           source={require('../../assets/logo.png')}
           style={styles.profileIcon}
         />
-        <Text style={styles.profileName}>Welcome, User!</Text>
+        <Text style={styles.profileName}>WaveOn</Text>
+        <Text style={styles.profileName}>www.alphatechnology.tn</Text>
       </View>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>

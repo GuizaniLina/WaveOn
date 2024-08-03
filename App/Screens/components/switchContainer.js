@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
 const SwitchContainer = ({ title, icon, infoIcons, onLongPress }) => {
+  const [isOn, setIsOn] = useState(true);
+
+  const handleOnPress = () => {
+    setIsOn(true);
+  };
+
+  const handleOffPress = () => {
+    setIsOn(false);
+  };
+
   return (
     <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
       <View style={styles.cercle}>
@@ -12,10 +22,16 @@ const SwitchContainer = ({ title, icon, infoIcons, onLongPress }) => {
         <Text style={styles.deviceTitle}>{title}</Text>
         
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.onButton}>
+          <TouchableOpacity
+            style={[styles.button, isOn ? styles.activeButton : styles.inactiveButton]}
+            onPress={handleOnPress}
+          >
             <Text style={styles.buttonText}>On</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.offButton}>
+          <TouchableOpacity
+            style={[styles.button, !isOn ? styles.activeButton : styles.inactiveButton]}
+            onPress={handleOffPress}
+          >
             <Text style={styles.buttonText}>Off</Text>
           </TouchableOpacity>
         </View>
@@ -43,14 +59,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#444',
     backgroundColor: 'grey',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 35,
+    padding: 7,
     marginBottom: 16,
     elevation: 3,
   },
   cercle: {
-    width: 70,
-    height: 70,
+    width: 50,
+    height: 50,
     borderWidth: 0.5,
     borderColor: 'white',
     borderRadius: 50,
@@ -60,10 +76,10 @@ const styles = StyleSheet.create({
     margin: 5,
   },
   icon: {
-    justifyContent: "center",
-    alignItems: "center",
-    width: 40,
-    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 30,
+    height: 30,
     tintColor: '#FFF',
   },
   textContainer: {
@@ -83,20 +99,18 @@ const styles = StyleSheet.create({
     width: 120,
     marginLeft: 30,
   },
-  onButton: {
+  button: {
     flex: 1,
     paddingVertical: 5,
-    marginRight: 10,
-    backgroundColor: '#4CAF50',
+    marginHorizontal: 5,
     alignItems: 'center',
     borderRadius: 5,
   },
-  offButton: {
-    flex: 1,
-    paddingVertical: 5,
+  activeButton: {
+    backgroundColor: '#4CAF50',
+  },
+  inactiveButton: {
     backgroundColor: '#F44336',
-    alignItems: 'center',
-    borderRadius: 5,
   },
   buttonText: {
     color: '#FFFFFF',
@@ -120,14 +134,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   infoIcon: {
-    width: 20,
-    height: 20,
+    width: 15,
+    height:15,
     marginHorizontal: 5,
     marginBottom: 7,
   },
   value: {
-    fontSize: 16,
-    color: 'black',
+    
+    paddingTop : 2,
+    fontSize: 12,
+    color: 'white',
   },
 });
 

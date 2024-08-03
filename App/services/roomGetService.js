@@ -7,7 +7,11 @@ const roomGetService = async (idclient, iduser, idNetwork, token) => {
     try {
         // Obtenir la date de la dernière mise à jour depuis AsyncStorage
         const lastUpdate = await AsyncStorage.getItem('lastUpdate') || '2020-01-01 00:00:00';
-        
+        const automationlastUpdate = await AsyncStorage.getItem('automationlastUpdate') || '2020-01-01 00:00:00';
+        const securitylastUpdate = await AsyncStorage.getItem('securitylastUpdate') || '2020-01-01 00:00:00';
+        const roomslastUpdate = await AsyncStorage.getItem('roomslastUpdate') || '2020-01-01 00:00:00';
+
+
         // Structure de la requête
         const requestData = {
             idclient,
@@ -17,8 +21,9 @@ const roomGetService = async (idclient, iduser, idNetwork, token) => {
             lastupdate:lastUpdate,
             commandLastId: 0,
             permissionsLastUpdate:lastUpdate,
-            roomsLastUpdate:lastUpdate,
-            automationLastUpdate:lastUpdate
+            roomsLastUpdate:roomslastUpdate,
+            automationLastUpdate: automationlastUpdate
+
         };
 
         // Appeler le service web
@@ -26,6 +31,7 @@ const roomGetService = async (idclient, iduser, idNetwork, token) => {
         if (response.data && response.data.rooms && response.data.assignments) {
             await AsyncStorage.setItem('rooms', JSON.stringify(response.data.rooms));
             await AsyncStorage.setItem('assignments', JSON.stringify(response.data.assignments));
+            await AsyncStorage.setItem('roomslastUpdate', JSON.stringify(response.data.roomsLastUpdate));
             console.log('Données des salles stockées avec succès');
         } else {
             console.error('Réponse invalide du service');

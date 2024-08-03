@@ -67,7 +67,7 @@ const LoginScreen = () => {
      // Set up interval to perform ping every 5 seconds
      const pingInterval = setInterval(() => {
       performPing( idclient, iduser, token);
-    }, 5000);
+    }, 10000);
 
      // Clean up interval on component unmount
      return () => clearInterval(pingInterval);

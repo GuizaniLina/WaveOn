@@ -3,7 +3,7 @@ export default class Node {
       this.UUID = data.UUID;
       this.name = data.name;
       this.deviceKey = data.deviceKey;
-      this.unicastAddress = data.unicastAddress;
+      this.unicastAddress = parseInt(data.unicastAddress, 16)||data.unicast;
       this.security = data.security;
       this.configComplete = data.configComplete;
       this.features = data.features;
@@ -13,11 +13,11 @@ export default class Node {
       this.elements = data.elements;
       this.blacklisted = data.blacklisted;
       this.cid = data.cid;
-      this.pid = data.pid;
+      this.pid = parseInt(data.pid, 16);
       this.vid = data.vid;
       this.crpl = data.crpl;
       this.networkTransmit = data.networkTransmit;
-
+      this.deviceType= data.deviceType || null;
 
       this.element_adress = data.element_adress || [];
     this.element_State = data.element_State || [];
@@ -110,15 +110,49 @@ export default class Node {
         return this.Batterie;
       }
 
-      updateFromDevice(updatedDevice) {
-        this.temperature = updatedDevice.temperature;
-        this.humidity = updatedDevice.humidity;
-        this.Occupancy = updatedDevice.Occupancy;
-        this.Luminosity = updatedDevice.Luminosity;
-        this.Chrono = updatedDevice.Chrono;
-        this.Batterie = updatedDevice.Batterie;
-        this.Eclat = updatedDevice.Eclat;
-        
+      getElementAddresses() {
+        return this.element_adress.length > 0 ? this.element_adress : [];
       }
+    
+      getElementStates() {
+        return this.element_State.length > 0 ? this.element_State : [];
+      }
+
+      updateFromDevice(updatedDevice) {
+      
+        if (updatedDevice.Temperature != null) 
+          this.Temperature = parseInt(updatedDevice.Temperature.toString().slice(0, 2));
+       
+       
+      if (updatedDevice.Humidity != null)
+        this.Humidity = parseInt(updatedDevice.Humidity.toString().slice(0, 2));
+       
+      if (updatedDevice.Occupancy != null)   this.Occupancy = updatedDevice.Occupancy;
+      
+      if (updatedDevice.Luminosity != null) this.Luminosity = updatedDevice.Luminosity;
+        
+      if (updatedDevice.Chrono != null)  this.Chrono = (updatedDevice.Chrono + 32768)   ;
+       
+      if (updatedDevice.Batterie != null) this.Batterie = updatedDevice.Batterie ;
+        
+      if (updatedDevice.Eclat != null) this.Eclat = updatedDevice.Eclat ;
+     
+      if (updatedDevice.elements != null){
+     // Met à jour les états des éléments selon leurs adresses
+     updatedDevice.elements.forEach(element => {
+      if (element.state != null) {
+        const normalizedState = ((element.state + 32768) / 65535) * 100;
+        const index = this.element_adress.indexOf(element.address);
+        if (index !== -1) {
+          // Mettez à jour l'état à l'index correspondant
+          this.element_State[index] = normalizedState;
+        } else {
+          // Si l'adresse n'existe pas dans le tableau, ajoutez-la avec son état
+          this.element_adress.push(element.address);
+          this.element_State.push(normalizedState);
+        }
+      }
+    });
     }
-  
+  }
+}

@@ -1,72 +1,133 @@
-import { Client, Message } from 'react-native-paho-mqtt';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Paho from 'paho-mqtt';
 
 const MQTT_SERVER = 'ws://197.14.52.129:8866/ws';
 let client;
+let USER_ID = null;
+let USER_EMAIL = null;
+let USER_PW = null;
 
-export const connectMQTT = async (setIsConnected) => {
-  console.log('Initializing MQTT connection...');
-
-  const myStorage = {
-    setItem: (key, item) => { 
-      console.log(`Saving item to storage: ${key}`);
-      myStorage[key] = item; 
-    },
-    getItem: (key) => {
-      console.log(`Retrieving item from storage: ${key}`);
-      return myStorage[key];
-    },
-    removeItem: (key) => {
-      console.log(`Removing item from storage: ${key}`);
-      delete myStorage[key];
-    },
-  };
-
-  const clientId = await AsyncStorage.getItem('idclient') || 'default-client-id';
-  console.log(`Client ID: ${clientId}`);
-
-  client = new Client({
-    uri: MQTT_SERVER,
-    clientId: clientId,
-    storage: myStorage,
-    username: 'houssem.ouali@alphatechnology.tn',
-    password: 'SD63qRL32WqfNTltYhpDpw==AlphaTechnology'
-  });
-
-  const wakeUpServer = async () => {
+const wakeUpServer = async () => {
+  if (client && client.isConnected()) {
     console.log('Sending wake up message...');
-    const message = new Message('Wake up message');
-    message.destinationName = '0/0/Ping/11';
+    const message = new Paho.Message('0/0/Ping/11');
+    message.destinationName = '2/1/Gateway';
     await client.send(message);
     console.log('Wake up message sent.');
-  };
+  } else {
+    console.log('Client is not connected. Cannot send wake up message.');
+  }
+};
+
+const handleClientConnected = async (setIsConnected) => {
+  console.log('Client connected!');
+  await wakeUpServer();
+  if (client && client.isConnected()) {
+    console.log('Subscribing to topic...');
+    await client.subscribe(`${USER_ID}/#`);
+    console.log(`Subscribed to topic: ${USER_ID}/#`);
+    setIsConnected(true);
+  } else {
+    console.log('Client is not connected. Cannot subscribe to topic.');
+  }
+};
+
+const onConnectSuccess = async (setIsConnected) => {
+  console.log("Connected!");
+  await handleClientConnected(setIsConnected);
+};
+
+const onConnectFailure = (response) => {
+  console.log("Connection failed:", response.errorMessage);
+};
+
+const connectToMQTT = async (setIsConnected, username, password) => {
+  console.log('Initiating MQTT connection...');
+
+  return new Promise((resolve, reject) => {
+    client.connect({
+      onSuccess: async () => {
+        try {
+          await onConnectSuccess(setIsConnected);
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      },
+      onFailure: (response) => {
+        onConnectFailure(response);
+        reject(response);
+      },
+      useSSL: false,
+      reconnect: true,
+      userName: username,
+      password: password,
+    });
+  });
+};
+
+const parseMessage = (message) => {
+  const msgParts = message.split('/');
+  const [unicastAddress, elementAddress, property, value] = msgParts;
+  return [{
+    unicastAddress: parseInt(unicastAddress, 16),
+    Temperature: property === 'Temperature' ? Number(value) : null,
+    Humidity: property === 'Humidity' ? Number(value) : null,
+    Occupancy: property === 'Occupancy' ? Number(value) : null,
+    Luminosity: property === 'Luminosity' ? Number(value) : null,
+    Chrono: property === 'Counter' ? Number(value) : null,
+    Eclat: property === 'MeteringLevel' ? Number(value) : null,
+    elements: [{
+      address: elementAddress,
+      state: (property === 'LightLevel') ? Number(value) : null,
+    }]
+  }];
+};
+
+export const connectMQTT = async (setIsConnected, updateDevices) => {
+  console.log('Initializing MQTT connection...');
+
+  USER_ID = await AsyncStorage.getItem('idclient') || null;
+  USER_EMAIL = await AsyncStorage.getItem('user_email') || null;
+  USER_PW = await AsyncStorage.getItem('user_passwordMQTT') || null;
+  console.log('user_email', USER_PW);
+
+  function generateClientId() {
+    return 'client_' + Math.random().toString(16).substr(2, 8) + '_' + Date.now();
+  }
+
+  const clientId = generateClientId();
+  console.log(`Generated Client ID: ${clientId}`);
+
+  client = new Paho.Client(
+    MQTT_SERVER,
+    clientId
+  );
 
   client.onConnectionLost = (response) => {
     if (response.errorCode !== 0) {
       console.log('Connection lost:', response.errorMessage);
       setIsConnected(false);
+      reconnectMQTT(setIsConnected, updateDevices); // Reconnect on connection lost
     }
   };
 
-  client.onMessageArrived = (message) => {
+  const handleMessageArrived =  (message) => {
     const msg = message.payloadString;
-    console.log('Received message:', msg);
-    const devices = parseMessage(msg);
-    handleUpdateDevices(devices);
+    try {
+      const devices = parseMessage(msg);
+       updateDevices(devices);
+    } catch (error) {
+      console.error('Error processing message:', error);
+    }
   };
 
-  client.onConnected = async () => {
-    console.log('Client connected!');
-    await wakeUpServer();
-    console.log('Subscribing to topic...');
-    await client.subscribe(`${clientId}/#`);
-    console.log(`Subscribed to topic: ${clientId}/#`);
-    setIsConnected(true);
-  };
+  client.onMessageArrived = handleMessageArrived;
 
   try {
     console.log('Attempting to connect to MQTT...');
-    await connectToMQTT(client, setIsConnected);
+    await connectToMQTT(setIsConnected, USER_EMAIL, USER_PW);
     console.log('MQTT connection successful.');
   } catch (error) {
     console.error('MQTT Connection Error:', error);
@@ -74,62 +135,13 @@ export const connectMQTT = async (setIsConnected) => {
   }
 };
 
-const connectToMQTT = async (client, setIsConnected) => {
+const reconnectMQTT = async (setIsConnected, updateDevices) => {
+  console.log('Reconnecting to MQTT...');
   try {
-    return await new Promise((resolve, reject) => {
-      console.log('Initiating MQTT connection...');
-      client.connect({
-        onSuccess: () => {
-          console.log('Connection successful!');
-          setIsConnected(true);
-          resolve();
-        },
-        onFailure: (error_1) => {
-          console.error('Connection failed:', error_1);
-          setIsConnected(false);
-          reject(error_1);
-        },
-        // timeout: 30, // Augmenter le timeout
-        useSSL: true, // Essayez avec useSSL: true si nécessaire
-      });
-    });
-  } catch (error_2) {
-    // Catching promise rejection ici
-    console.error('Unhandled Promise Rejection:', error_2);
-    throw error_2; // Re-throw pour traiter ailleurs si nécessaire
-  }
-};
-
-const parseMessage = (message) => {
-  console.log('Parsing message:', message);
-  const msgParts = message.split('/');
-  const [unicastAddress, elementAddress, property, value] = msgParts;
-
-  return [{
-    name: 'Mock Device',
-    unicastAddress,
-    temperature: property === 'Temperature' ? Number(value) : null,
-    humidity: property === 'Humidity' ? Number(value) : null,
-    elements: [{
-      address: elementAddress,
-      state: property === 'LightLevel' ? Number(value) : -32768,
-    }]
-  }];
-};
-
-export const toggleDeviceState = async (device, elementIndex) => {
-  console.log('Toggling device state...');
-  if (client.isConnected()) {
-    const element = device.elements[elementIndex];
-    const newState = element.state > -32768 ? -32768 : 32767;
-    console.log(`Sending message to toggle device state to: ${newState}`);
-
-    const message = new Message(`${device.unicastAddress}/${element.address}/LightLevel/${newState}`);
-    message.destinationName = `${client.clientId}/1/Gateway`;
-    await client.send(message);
-    console.log('Message sent.');
-  } else {
-    console.error('Cannot send message, client is not connected.');
+    await connectToMQTT(setIsConnected, USER_EMAIL, USER_PW);
+    console.log('Reconnection successful.');
+  } catch (error) {
+    console.error('Reconnection failed:', error);
   }
 };
 
@@ -140,5 +152,60 @@ export const disconnectMQTT = () => {
     console.log('MQTT disconnected.');
   } else {
     console.log('MQTT client is not connected.');
+  }
+};
+
+export const toggleDeviceState = async (device, elementIndex) => {
+  const address = device.unicastAddress;
+  const elementAddress = device.element_adress[elementIndex];
+  const currentState = device.getElementStates()[elementIndex];
+  if (currentState != null){
+  const newState = currentState > 0 ? -32768 : 32767;
+  
+  await publishMQTT(address, elementAddress, newState);
+  console.log('published with success');
+  }
+};
+
+export const publishMQTT = async (unicastAddress, elementAddress, state) => {
+  if (!client.isConnected()) {
+    console.error('MQTT is not connected');
+    return;
+  }
+
+  const USER_ID = await AsyncStorage.getItem('idclient');
+  const topic = `${USER_ID}/1/Gateway`;
+  const payload = `${unicastAddress}/${elementAddress}/LightLevel/${state}`;
+  const message = new Paho.Message(payload);
+  message.destinationName = topic;
+  message.qos = 0;
+  message.retained = false;
+
+  client.send(message);
+};
+
+// Function to watch connection status
+const watchConnectionStatus = (callback, interval = 1000) => {
+  try {
+    let previousStatus = client.isConnected();
+    setInterval(() => {
+      const currentStatus = client.isConnected();
+      if (currentStatus !== previousStatus) {
+        callback(currentStatus);
+        previousStatus = currentStatus;
+      }
+    }, interval);
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+
+// Callback function to handle connection status changes
+const onConnectionStatusChange = (isConnected) => {
+  if (isConnected) {
+    console.log("Client connected");
+  } else {
+    console.log("Client disconnected");
   }
 };

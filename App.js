@@ -17,6 +17,16 @@ import Emailverification from './App/Screens/Auth/Emailverification';
 import Devices from './App/Screens/Devices';
 import Home from './App/Screens/Home';
 import RoomDetails from './App/Screens/RoomDetails';
+import Profil from './App/Screens/Drawer/Profil';
+import Settings from './App/Screens/Drawer/Settings';
+import ManageUsers from './App/Screens/Drawer/ManageUsers';
+import Networks from './App/Screens/Drawer/Networks';
+import Proxy from './App/Screens/Drawer/Proxy';
+import test from './App/Screens/test';
+import AutomationFormScreen from './App/Screens/AutomationFormScreen';
+
+
+
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -26,6 +36,7 @@ const StackNavigator = () => {
     <Stack.Navigator initialRouteName='WelcomeScreen' screenOptions={{ headerShown: false }}>
       <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="AutomationFormScreen" component={AutomationFormScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="RoomDetails" component={RoomDetails} />
       <Stack.Screen name="Signup" component={Signup} />
@@ -36,6 +47,12 @@ const StackNavigator = () => {
       <Stack.Screen name="Home" component={Home} />
       <Stack.Screen name="Emailverification" component={Emailverification} />
       <Stack.Screen name="Groups" component={Groups} />
+      <Stack.Screen name="ManegeUsers" component={ManageUsers} />
+      <Stack.Screen name="Settings" component={Settings} />
+      <Stack.Screen name="Profil" component={Profil} />
+      <Stack.Screen name="Networks" component={Networks} />
+      <Stack.Screen name="proxy" component={Proxy} />
+      
     </Stack.Navigator>
   );
 }
@@ -47,14 +64,14 @@ export default function App() {
         <Drawer.Navigator
           drawerContent={props => <CustomDrawerContent {...props}  />}
           screenOptions={{ headerShown: false }}
-          drawerStyle={{ backgroundColor: '#c6cbef', width: 240 }}
+          drawerStyle={{ backgroundColor: '#333', width: 240 }}
         >
-          <Drawer.Screen name="Accueil" component={StackNavigator} />
-          <Drawer.Screen name="Devices" component={Devices} />
-          <Drawer.Screen name="Groups" component={Groups} />
-          <Drawer.Screen name="Home" component={Home} />
-          <Drawer.Screen name="Security" component={Security} />
-          <Drawer.Screen name="Automation" component={Automation} />
+          <Drawer.Screen name="Rooms" component={StackNavigator}/>
+          <Drawer.Screen name="Profil" component={Profil} />
+          <Drawer.Screen name="Settings" component={Settings} />
+          <Drawer.Screen name="Proxy Filter" component={Proxy} />
+          <Drawer.Screen name="Networks" component={Networks} />
+         <Drawer.Screen name="Manage Users " component={ManageUsers} />
         </Drawer.Navigator>
       </NavigationContainer>
     </ThemeProvider>

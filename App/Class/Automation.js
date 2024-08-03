@@ -1,4 +1,18 @@
 class automation {
+  static TEMPERATURE = 0;
+  static HUMIDITY = 1;
+  static OCCUPANCY = 2;
+  static LUMINOSITY = 3;
+
+  static PIR_SENSOR = 1;
+  static EXTERNAL_SENSOR = 2;
+  static POWER_CUT = 3;
+
+  static GREATER = 0;
+  static EQUAL = 1;
+  static LESS = 2;
+
+
     // Descriptions statiques
     static TARGET_TYPE_DESCRIPTIONS = {
       '-2': 'Mixed',
@@ -28,14 +42,15 @@ class automation {
     };
   
     constructor(data) {
-      this.id = data.id;
+      this.idAutomation= data.idAutomation;
+      this.idNetwork =data.idNetwork;
       this.name = data.name;
       this.targetType = data.targetType;
       this.eventType = data.eventType;
       this.state = data.state;
-      this.targets = data.targets;
-      this.times = data.times;
-      this.triggers = data.triggers;
+      this.automationTargets = data.automationTargets;
+      this.automationTimes = data.automationTimes;
+      this.automationTriggers = data.automationTriggers;
     }
   
     // Fonction pour déterminer l'état actif

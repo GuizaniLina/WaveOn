@@ -7,19 +7,22 @@ const securityGetService = async (idclient, iduser, idNetwork, token) => {
     try {
         // Obtenir la date de la dernière mise à jour depuis AsyncStorage
         const lastUpdate = await AsyncStorage.getItem('lastUpdate') || '2020-01-01 00:00:00';
+        const automationlastUpdate = await AsyncStorage.getItem('automationlastUpdate') || '2020-01-01 00:00:00';
+        const securitylastUpdate = await AsyncStorage.getItem('securitylastUpdate') || '2020-01-01 00:00:00';
+        const roomslastUpdate = await AsyncStorage.getItem('roomslastUpdate') || '2020-01-01 00:00:00';
         
         // Structure de la requête
         const requestData ={
             idclient,
             iduser,
-            automationsLastUpdate:lastUpdate,
+            automationsLastUpdate:automationlastUpdate,
             token,
             idNetwork,
             lastupdate:lastUpdate ,
             commandLastId: 0,
             permissionsLastUpdate: lastUpdate,
-            roomsLastUpdate: lastUpdate,
-            automationLastUpdate: lastUpdate
+            roomsLastUpdate: roomslastUpdate,
+            automationLastUpdate: automationlastUpdate
         };
 
         // Appeler le service web
@@ -28,6 +31,7 @@ const securityGetService = async (idclient, iduser, idNetwork, token) => {
             await AsyncStorage.setItem('security', JSON.stringify(response));
             await AsyncStorage.setItem('securityOption', JSON.stringify(response.data.securityOption));
             await AsyncStorage.setItem('securityTriggers', JSON.stringify(response.data.securityTriggers));
+            await AsyncStorage.setItem('securitylastUpdate', JSON.stringify(response.data.securityLastUpdate));
             console.log('Données des securités stockées avec succès');
         } else {
             console.error('Réponse invalide du service');

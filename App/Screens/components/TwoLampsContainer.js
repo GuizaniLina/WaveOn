@@ -1,60 +1,30 @@
 import React from 'react';
 import { View, TouchableOpacity, Image, StyleSheet, Text } from 'react-native';
-import Slider from '@react-native-community/slider';
 
-const TwoLampsContainer = ({ title, icon1,icon2, slider_1_Values,slider_2_Values, infoIcons, onLongPress }) => {
+const TwoLampsContainer = ({ title, icon1, icon2, level_A, level_B, infoIcons, onLongPress, onPressLamp1, onPressLamp2 }) => {
+  const isLevelActive = (level) => level !== '0 %' && level !== '--';
+
   return (
     <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
-       
-    <View style={styles.lampContainer}>
-  <View style={styles.cercle}>
-      <TouchableOpacity >
-        <Image source={icon1} style={styles.icon} />
-      </TouchableOpacity>
-      
+      <View style={styles.lampContainer}>
+        <View style={[styles.cercle, isLevelActive(level_A) ? styles.cercleActive : {}]}>
+          <TouchableOpacity onPress={onPressLamp1}>
+            <Image source={icon1} style={[styles.icon, isLevelActive(level_A) ? styles.iconActive : {}]} />
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.cercle, isLevelActive(level_B) ? styles.cercleActive : {}]}>
+          <TouchableOpacity onPress={onPressLamp2}>
+            <Image source={icon2} style={[styles.icon, isLevelActive(level_B) ? styles.iconActive : {}]} />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={styles.cercle}>
-      <TouchableOpacity >
-        <Image source={icon2} style={styles.icon} />
-      </TouchableOpacity>
+      <View style={styles.textContainer}>
+        <Text style={styles.deviceTitle}>{title}</Text>
+        <View>
+          <Text style={styles.bodyinfo}>A Level : {level_A}</Text>
+          <Text style={[styles.bodyinfo, { marginTop: 45 }]}>B Level : {level_B}</Text>
+        </View>
       </View>
-      </View>
-      
-    <View style={styles.textContainer}>
-      <Text style={styles.deviceTitle}>
-        {title}
-        
-      </Text>
-
-      
-  <View style={styles.controls}>
-  <TouchableOpacity style={styles.stopButton}>
-  <View style={styles.stopIcon} />
-</TouchableOpacity>
-  <Slider
-    style={styles.slider}
-    minimumValue={0}
-    maximumValue={100}
-    minimumTrackTintColor="#FFFFFF"
-    maximumTrackTintColor="#000000"
-  />
-    </View> 
-    <View style={styles.controls}>
-  <TouchableOpacity style={styles.stopButton}>
-  <View style={styles.stopIcon} />
-</TouchableOpacity>
-  <Slider
-    style={styles.slider}
-    minimumValue={0}
-    maximumValue={100}
-    minimumTrackTintColor="#FFFFFF"
-    maximumTrackTintColor="#000000"
-  />
-    
-    </View>
-    </View>
-  
- 
       <View style={styles.iconContainer}>
         {infoIcons.map((info, index) => (
           <View key={index} style={styles.infoContainer}>
@@ -65,7 +35,7 @@ const TwoLampsContainer = ({ title, icon1,icon2, slider_1_Values,slider_2_Values
       </View>
     </TouchableOpacity>
   );
-}; 
+};
 
 const styles = StyleSheet.create({
   lampContainer :{
@@ -78,8 +48,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: 5,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 14,
     color :'white'
+  },
+  bodyinfo: {
+    fontSize: 12,
+   // marginTop: 5,
+    fontWeight: 'bold',
+   // marginBottom: 5,
+    color :'#333'
   },
   lampRow: {
     flexDirection: 'row',
@@ -87,8 +64,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cercle: {
-    width: 70,
-    height: 70,
+    width: 50,
+    height: 50,
     borderWidth: 0.5,
     borderColor: 'white',
     borderRadius: 50,
@@ -98,15 +75,11 @@ const styles = StyleSheet.create({
     margin: 5,
   },
   icon: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     tintColor: '#FFF',
   },
-  controls: {
-    flexDirection: 'row',
-      paddingTop: 10,
-      
-  },
+
   iconContainer: {
     flex: 0.35,
   // margin :2 ,
@@ -115,40 +88,7 @@ const styles = StyleSheet.create({
    
   //  backgroundColor : 'white'
   },
-  stopButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 25,
-    backgroundColor: 'red',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop:5,
-    marginRight :5
-   // marginLeft: 1,
-  },
-  deviceContainer: {
-    flexDirection: 'row', // Align children horizontally
-    alignItems: 'center', // Align children vertically
-    borderWidth: 1,
-    borderColor: '#444',
-    backgroundColor: "grey",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
-    elevation: 3,
-  },
-
-   stopIcon: {
-  width: 10,
-  height: 10,
-  backgroundColor: '#FFF',
-},
-slider: {
-  width: 130,
-  height: 35,
-  marginBottom : 10,
  
-},
 infoContainer :{
   flexDirection: 'row',
 },
@@ -158,14 +98,15 @@ infoContainer :{
     marginBottom: 5,
   },
   infoIcon: { 
-    width: 20,
-    height: 20,
+    width: 15,
+    height: 15,
     marginHorizontal: 5,
   },
   value: {
-    fontSize: 16,
-    marginBottom: 16,
-    color: 'black',
+    fontSize: 12,
+    marginBottom: 12,
+    color: 'white',
+    paddingTop :2
   },
   deviceContainer: {
     flexDirection: 'row', // Align children horizontally
@@ -173,10 +114,12 @@ infoContainer :{
     borderWidth: 1,
     borderColor: '#444',
     backgroundColor: "grey",
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 35,
+    padding: 7,
     marginBottom: 16,
     elevation: 3,
+   // borderBottomColor:'white',
+   // borderBottomWidth:2
   },
   textContainer: {
     flex: 1,
@@ -186,6 +129,13 @@ infoContainer :{
   // width:100,
 
   //backgroundColor : "#fff" // Take remaining space in the row
+  },
+  cercleActive: {
+    backgroundColor: '#FFF', // White background for active level
+    borderColor: '#000', // Black border for active level
+  },
+  iconActive: {
+    tintColor: '#000', // Black icon for active level
   },
 
 });

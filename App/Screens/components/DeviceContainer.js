@@ -46,14 +46,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#444',
     backgroundColor: 'grey',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 35,
+    padding: 7,
     marginBottom: 16,
     elevation: 3,
   },
   cercle: {
-    width: 70,
-    height: 70,
+    width: 50,
+    height: 50,
     borderWidth: 0.5,
     borderColor: 'white',
     borderRadius: 50,
@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
   icon: {
     justifyContent:"center",
     alignItems : "center",
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     tintColor: '#FFF',
     //marginHorizontal: 10,
   },
@@ -117,16 +117,16 @@ const styles = StyleSheet.create({
   infoContainer: {
     flexDirection: 'row',
   },
-  infoIcon: {
-     
-    width: 20,
-    height: 20,
+  infoIcon: { 
+    width: 15,
+    height: 15,
     marginHorizontal: 5,
-    marginBottom :7,
+    marginBottom :8,
   },
   value: {
-    fontSize: 16,
-    color: 'black',
+    paddingTop : 2,
+    fontSize: 11,
+    color: 'white',
   },
 });
 

@@ -20,9 +20,7 @@ const Accueil = ({ navigation }) => {
     date: moment().format('LL'),
     time: moment().format('LTS'),
   });
-  const handleSearchIconClick = () => {
-    setSearchActive(!isSearchActive);
-  };
+  
 
   useEffect(() => {
     fetchWeatherData();
@@ -38,7 +36,7 @@ const Accueil = ({ navigation }) => {
   const fetchWeatherData = async () => {
     try {
       console.log("hiii");
-      const response = await fetch('https://api.openweathermap.org/data/2.5/weather?q=London&appid=8072e7f755e170def1ad5ee79c3aa0dd&units=metric');
+      const response = await fetch('https://api.openweathermap.org/data/2.5/weather?q=Tunisia&appid=8072e7f755e170def1ad5ee79c3aa0dd&units=metric');
       console.log("hiii");
       const data = await response.json();
       console.log("hiii");
@@ -82,8 +80,8 @@ const Accueil = ({ navigation }) => {
           <Text style={styles.headerTitle}>Loading...</Text>
           </View>
         )}
-        <TouchableOpacity onPress={handleSearchIconClick}>
-          <Image source={require('../../assets/icons/search.png')} style={styles.icon} />
+        <TouchableOpacity onPress={''}>
+          <Image source={require('../../assets/icons/notification.png')} style={styles.icon} />
         </TouchableOpacity>
       </View>
       <Tab.Navigator
