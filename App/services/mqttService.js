@@ -68,10 +68,12 @@ const connectToMQTT = async (setIsConnected, username, password) => {
 };
 
 const parseMessage = (message) => {
+  
   const msgParts = message.split('/');
   const [unicastAddress, elementAddress, property, value] = msgParts;
+ 
   return [{
-    unicastAddress: parseInt(unicastAddress, 16),
+    unicastAddress:Number(unicastAddress),
     Temperature: property === 'Temperature' ? Number(value) : null,
     Humidity: property === 'Humidity' ? Number(value) : null,
     Occupancy: property === 'Occupancy' ? Number(value) : null,
@@ -79,8 +81,8 @@ const parseMessage = (message) => {
     Chrono: property === 'Counter' ? Number(value) : null,
     Eclat: property === 'MeteringLevel' ? Number(value) : null,
     elements: [{
-      address: elementAddress,
-      state: (property === 'LightLevel') ? Number(value) : null,
+      address: (property === 'LightLevel' || property === 'BlindsLevel') ? Number(elementAddress) : null,
+      state: (property === 'LightLevel' || property === 'BlindsLevel') ? Number(value) : null,
     }]
   }];
 };
@@ -117,6 +119,7 @@ export const connectMQTT = async (setIsConnected, updateDevices) => {
     const msg = message.payloadString;
     try {
       const devices = parseMessage(msg);
+     // console.log('device sending', devices);
        updateDevices(devices);
     } catch (error) {
       console.error('Error processing message:', error);
@@ -157,17 +160,17 @@ export const disconnectMQTT = () => {
 
 export const toggleDeviceState = async (device, elementIndex) => {
   const address = device.unicastAddress;
-  const elementAddress = device.element_adress[elementIndex];
+  const elementAddress = device.getElementAddresses()[elementIndex];
   const currentState = device.getElementStates()[elementIndex];
   if (currentState != null){
   const newState = currentState > 0 ? -32768 : 32767;
   
-  await publishMQTT(address, elementAddress, newState);
+  await publishMQTT(address, elementAddress, newState,'LightLevel');
   console.log('published with success');
   }
 };
 
-export const publishMQTT = async (unicastAddress, elementAddress, state) => {
+export const publishMQTT = async (unicastAddress, elementAddress, state, property) => {
   if (!client.isConnected()) {
     console.error('MQTT is not connected');
     return;
@@ -175,7 +178,7 @@ export const publishMQTT = async (unicastAddress, elementAddress, state) => {
 
   const USER_ID = await AsyncStorage.getItem('idclient');
   const topic = `${USER_ID}/1/Gateway`;
-  const payload = `${unicastAddress}/${elementAddress}/LightLevel/${state}`;
+  const payload = `${unicastAddress}/${elementAddress}/${property}/${state}`;
   const message = new Paho.Message(payload);
   message.destinationName = topic;
   message.qos = 0;

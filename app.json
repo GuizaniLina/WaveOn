@@ -17,6 +17,17 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "packagerOpts": {
+      "config": "metro.config.js",
+      "sourceExts": [
+        "js",
+        "json",
+        "ts",
+        "tsx",
+        "jsx",
+        "svg"
+      ]
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -36,6 +47,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-localization"
+    ]
   }
 }

@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next'; // Import the useTranslation hook
 
 const Start = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation(); // Use the t function for translations
 
   const handleGetStarted = () => {
     navigation.navigate('Signup'); // Navigate to Signup screen
@@ -17,18 +19,16 @@ const Start = () => {
     <ImageBackground source={require('../../assets/smart_home1.jpg')} style={styles.background}>
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Control Your House</Text>
-          <Text style={styles.paragraph}>
-          Control your smart house devices and enjoy your life</Text>
+          <Text style={styles.title}>{t('control_your_house')}</Text>
+          <Text style={styles.paragraph}>{t('control_smart_devices')}</Text>
         </View>
         <View style={styles.buttonsContainer}>
           <TouchableOpacity style={[styles.button, styles.blueButton]} onPress={handleGetStarted}>
-            <Text style={styles.buttonText}>Get Started</Text>
+            <Text style={styles.buttonText}>{t('get_started')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.button, styles.greenButton]} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
-           
+            <Text style={styles.buttonText}>{t('login')}</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ImageBackground>
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center', // Center content horizontally
     marginBottom: 25,
-    marginHorizontal : 25, // Adjust margin between content and buttons
+    marginHorizontal: 25, // Adjust margin between content and buttons
   },
   title: {
     fontSize: 35,
@@ -63,7 +63,6 @@ const styles = StyleSheet.create({
   paragraph: {
     textAlign: 'center',
     fontSize: 17,
-   // marginBottom:,
     color: '#fff',
   },
   buttonsContainer: {
@@ -83,7 +82,6 @@ const styles = StyleSheet.create({
   greenButton: {
     backgroundColor: '#58c487',
   },
- 
   buttonText: {
     fontSize: 16,
     fontWeight: 'bold',

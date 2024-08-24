@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, TouchableOpacity, Image, StyleSheet, Text } from 'react-native';
+import { ThemeContext } from '../../ThemeProvider';
 
-const TwoLampsContainer = ({ title, icon1, icon2, level_A, level_B, infoIcons, onLongPress, onPressLamp1, onPressLamp2 }) => {
+const TwoLampsContainer = ({ title, icon1, icon2, level_A, level_B, infoIcons, onLongPress, onPressLamp1, onPressLamp2 , onPress}) => {
   const isLevelActive = (level) => level !== '0 %' && level !== '--';
+  const { theme} = useContext(ThemeContext);
 
   return (
-    <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
+    <TouchableOpacity onLongPress={onLongPress} onPress={onPress} style={[styles.deviceContainer,{backgroundColor :theme.$standard , borderColor:theme.$standard}]}>
       <View style={styles.lampContainer}>
         <View style={[styles.cercle, isLevelActive(level_A) ? styles.cercleActive : {}]}>
           <TouchableOpacity onPress={onPressLamp1}>
@@ -19,17 +21,17 @@ const TwoLampsContainer = ({ title, icon1, icon2, level_A, level_B, infoIcons, o
         </View>
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.deviceTitle}>{title}</Text>
+        <Text style={[styles.deviceTitle ,{ color : theme.$textColor}]}>{title}</Text>
         <View>
-          <Text style={styles.bodyinfo}>A Level : {level_A}</Text>
-          <Text style={[styles.bodyinfo, { marginTop: 45 }]}>B Level : {level_B}</Text>
+          <Text style={[styles.bodyinfo , {color : theme.$textColor}]}>A Level : {level_A}</Text>
+          <Text style={[styles.bodyinfo, {color : theme.$textColor}, { marginTop: 45 }]}>B Level : {level_B}</Text>
         </View>
       </View>
       <View style={styles.iconContainer}>
         {infoIcons.map((info, index) => (
           <View key={index} style={styles.infoContainer}>
             <Image source={info.icon} style={[styles.infoIcon, { tintColor: info.color }]} />
-            <Text style={styles.value}>{info.value}</Text>
+            <Text style={[styles.value ,{ color : theme.$textColor}]}>{info.value}</Text>
           </View>
         ))}
       </View>
@@ -118,8 +120,10 @@ infoContainer :{
     padding: 7,
     marginBottom: 16,
     elevation: 3,
-   // borderBottomColor:'white',
-   // borderBottomWidth:2
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   textContainer: {
     flex: 1,

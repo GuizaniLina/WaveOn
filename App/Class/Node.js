@@ -10,7 +10,7 @@ export default class Node {
       this.defaultTTL = data.defaultTTL;
       this.netKeys = data.netKeys;
       this.appKeys = data.appKeys;
-      this.elements = data.elements;
+      this.elements =[];
       this.blacklisted = data.blacklisted;
       this.cid = data.cid;
       this.pid = parseInt(data.pid, 16);
@@ -19,7 +19,7 @@ export default class Node {
       this.networkTransmit = data.networkTransmit;
       this.deviceType= data.deviceType || null;
 
-      this.element_adress = data.element_adress || [];
+      this.element_adress = data.element_adress ||[];
     this.element_State = data.element_State || [];
     this.Humidity = null ;
     this.Temperature = null;
@@ -74,7 +74,13 @@ export default class Node {
         default:
           return [];
       }
-    }*/
+    }*/generateElementAddresses(unicastAddress, numberOfElements) {
+      let addresses = [];
+      for (let i = 0; i < numberOfElements; i++) {
+          addresses.push(unicastAddress + i);
+      }
+      return addresses;
+  }
 
     getHumidity() {
       if  (this.Humidity == null)  this.Humidity='--'  ;
@@ -119,6 +125,11 @@ export default class Node {
       }
 
       updateFromDevice(updatedDevice) {
+        if (updatedDevice.unicastAddress !== this.unicastAddress) {
+          console.warn(`Unicast address mismatch: expected ${this.unicastAddress}, got ${updatedDevice.unicastAddress}`);
+          // You can return early or handle the mismatch case here if needed
+          return;
+      }
       
         if (updatedDevice.Temperature != null) 
           this.Temperature = parseInt(updatedDevice.Temperature.toString().slice(0, 2));
@@ -138,21 +149,22 @@ export default class Node {
       if (updatedDevice.Eclat != null) this.Eclat = updatedDevice.Eclat ;
      
       if (updatedDevice.elements != null){
-     // Met à jour les états des éléments selon leurs adresses
-     updatedDevice.elements.forEach(element => {
-      if (element.state != null) {
-        const normalizedState = ((element.state + 32768) / 65535) * 100;
-        const index = this.element_adress.indexOf(element.address);
-        if (index !== -1) {
-          // Mettez à jour l'état à l'index correspondant
-          this.element_State[index] = normalizedState;
-        } else {
-          // Si l'adresse n'existe pas dans le tableau, ajoutez-la avec son état
-          this.element_adress.push(element.address);
-          this.element_State.push(normalizedState);
-        }
-      }
-    });
+        // Met à jour les états des éléments selon leurs adresses
+        updatedDevice.elements.forEach(element => {
+         if (element.state != null) {
+          const normalizedState = Math.floor(((element.state + 32768) / 65535) * 100);
+           const index = this.element_adress.indexOf(element.address);
+           if (index !== -1) {
+             // Mettez à jour l'état à l'index correspondant
+             this.element_State[index] = normalizedState;
+           } else {
+             // Si l'adresse n'existe pas dans le tableau, ajoutez-la avec son état
+             this.element_adress.push(element.address);
+             this.element_State.push(normalizedState);
+           }
+         }
+       });
     }
-  }
-}
+              }
+   
+            }

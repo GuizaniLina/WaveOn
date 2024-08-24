@@ -1,10 +1,11 @@
-import React from 'react';
+import React ,{useContext}from 'react';
 import { View, Text, Switch, Image, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeContext } from '../../ThemeProvider';
 
-const AutomationContainer = ({ icon, text, isEnabled, onToggle, onDelete }) => {
-
+const AutomationContainer = ({ icon, text, isEnabled, onToggle, onDelete  , onPress}) => {
+  const { theme, setTheme } = useContext(ThemeContext);
   const renderRightActions = (progress, dragX) => {
     const scale = dragX.interpolate({
       inputRange: [-100, 0],
@@ -25,19 +26,19 @@ const AutomationContainer = ({ icon, text, isEnabled, onToggle, onDelete }) => {
 
   return (
     <Swipeable renderRightActions={renderRightActions}>
-      <View style={styles.optionContainer}>
-        <View style={styles.cercle}>
-          <Image source={icon} style={styles.optionIcon} />
+      <TouchableOpacity style={ [styles.optionContainer , {backgroundColor :theme.$standard}] } onPress={onPress}>
+        <View style={[styles.cercle , {backgroundColor :theme.$standard , borderColor :theme.$textColor }] }>
+          <Image source={icon} style={[styles.optionIcon , {tintColor :theme.$textColor} ]} />
         </View>
-        <Text style={styles.optionText}>{text}</Text>
+        <Text style={[styles.optionText , {color : theme.$textColor}]}>{text}</Text>
         <Switch
           value={isEnabled}
           onValueChange={onToggle}
-          trackColor={{ false: '#333', true: 'rgba(153, 222, 160, 0.74)' }}
-          thumbColor={isEnabled ? '#333' : '#f4f3f4'}
-          ios_backgroundColor="#3e3e3e"
+          trackColor={{ false: theme.$standard, true: 'rgba(153, 222, 160, 0.74)' }}
+          thumbColor={isEnabled ? theme.$standard : ' rgba(153, 222, 160, 0.74)' }
+          //ios_backgroundColor="#3e3e3e"
         />
-      </View>
+      </TouchableOpacity>
     </Swipeable>
   );
 };
@@ -46,11 +47,16 @@ const styles = StyleSheet.create({
   optionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#444',
+ 
     paddingVertical: 16,
     paddingHorizontal: 10,
     borderRadius: 25,
     marginBottom: 16,
+    marginHorizontal :10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   optionIcon: {
     justifyContent: "center",
@@ -64,6 +70,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFF',
     flex: 1,
+    fontWeight:'bold'
   },
   cercle: {
     width: 50,

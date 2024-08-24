@@ -1,13 +1,15 @@
-import React, { useState, useContext } from 'react';
-import { View,ImageBackground, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Keyboard, TouchableWithoutFeedback, Image } from 'react-native';
-import { ThemeContext } from '../../ThemeProvider';
+import React, { useState } from 'react';
+import { View, ImageBackground, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Keyboard, TouchableWithoutFeedback, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next'; // Import the useTranslation hook
 
 const Signup = () => {
+  const { t } = useTranslation(); // Use the t function for translations
   const [email, setEmail] = useState('');
-  const [password, setPassword , verifPassword , username] = useState('');
-  const { theme } = useContext(ThemeContext);
+  const [password, setPassword] = useState('');
+  const [verifPassword, setVerifPassword] = useState('');
+  const [username, setUsername] = useState('');
   const navigation = useNavigation();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -19,108 +21,104 @@ const Signup = () => {
 
   const handleForgotPassword = () => {
     if (email.trim() === '') {
-      Alert.alert('Error', 'Please enter your email to reset password');
+      Alert.alert('Error', t('reset_password_prompt'));
       return;
     }
     console.log('Forgot password for email:', email);
-    Alert.alert('Reset Password', 'An email has been sent to reset your password.');
+    Alert.alert(t('reset_password'), t('reset_password_email_sent'));
     Keyboard.dismiss();
   };
 
   const handleSignUp = () => {
-    // Implement sign up logic here
     console.log('Sign Up clicked!');
-    // Navigate to the signup screen
-    navigation.navigate('HomeScreen'); // Navigate to the Signup screen
+    navigation.navigate('HomeScreen');
   };
 
   return (
     <ImageBackground source={require('../../../assets/smart_home1.jpg')} style={styles.background}>
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-       
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.textColor }]}>WaveOn</Text>
-        <Image source={require('../../../assets/logo.png')} style={styles.logo} />
-      </View>
-      <TextInput
-        style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}
-        placeholder="Username"
-        placeholderTextColor={theme.textColor}
-        autoCapitalize="none"
-        onChangeText={username}
-      />
-      <TextInput
-        style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}
-        placeholder="Email"
-        placeholderTextColor={theme.textColor}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <View style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}>
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor={theme.textColor}
-          secureTextEntry={!passwordVisible}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setPasswordVisible(!passwordVisible)}
-        >
-          <FontAwesome
-            name={passwordVisible ? 'eye-slash' : 'eye'}
-            size={24}
-            color={theme.textColor}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={[styles.container, { backgroundColor: 'rgba(34, 34, 34, 0.8)' }]}>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: '#fff' }]}>{t('waveon')}</Text>
+            <Image source={require('../../../assets/logo.png')} style={styles.logo} />
+          </View>
+          <TextInput
+            style={[styles.input, { color: '#fff', borderColor: '#fff' }]}
+            placeholder={t('username')}
+            placeholderTextColor={'#fff'}
+            autoCapitalize="none"
+            value={username}
+            onChangeText={setUsername}
           />
-        </TouchableOpacity>
-      </View>
-      <View style={[styles.input, { color: theme.textColor, borderColor: theme.textColor }]}>
-        <TextInput
-          placeholder="Set Password Again"
-          placeholderTextColor={theme.textColor}
-          secureTextEntry={!passwordVisible}
-          value={password}
-          onChangeText={verifPassword}
-        />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setPasswordVisible(!passwordVisible)}
-        >
-          <FontAwesome
-            name={passwordVisible ? 'eye-slash' : 'eye'}
-            size={24}
-            color={theme.textColor}
+          <TextInput
+            style={[styles.input, { color: '#fff', borderColor: '#fff' }]}
+            placeholder={t('email')}
+            placeholderTextColor={'#fff'}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
-        </TouchableOpacity>
-      </View>
-     
-     
-      <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
-        <Text style={[styles.buttonText, { color: theme.buttonTextColor }]}>Sign Up</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.loginRedirect} onPress={() => navigation.navigate('Login')}>
-        <Text style={{ color: theme.textColor }}>Already have an account? Login</Text>
-      </TouchableOpacity>
-      <Text style={{ color: theme.textColor }}>Or</Text>
-      <View style={styles.socialIconsContainer}>
-        <TouchableOpacity>
-          <Image source={require('../../../assets/icons/google.png')} style={styles.socialIcon} />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Image source={require('../../../assets/icons/facebook.png')} style={styles.socialIcon} />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Image source={require('../../../assets/icons/apple.png')} style={[styles.socialIcon ,{tintColor:'white'}]} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  </TouchableWithoutFeedback>
-</ImageBackground>
-);
+          <View style={[styles.input, { color: '#fff', borderColor: '#fff' }]}>
+            <TextInput
+              placeholder={t('password')}
+              placeholderTextColor={'#fff'}
+              secureTextEntry={!passwordVisible}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setPasswordVisible(!passwordVisible)}
+            >
+              <FontAwesome
+                name={passwordVisible ? 'eye-slash' : 'eye'}
+                size={24}
+                color={'#fff'}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.input, { color: '#fff', borderColor: '#fff' }]}>
+            <TextInput
+              placeholder={t('set_password_again')}
+              placeholderTextColor={'#fff'}
+              secureTextEntry={!passwordVisible}
+              value={verifPassword}
+              onChangeText={setVerifPassword}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setPasswordVisible(!passwordVisible)}
+            >
+              <FontAwesome
+                name={passwordVisible ? 'eye-slash' : 'eye'}
+                size={24}
+                color={'#fff'}
+              />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
+            <Text style={[styles.buttonText, { color: '#fff' }]}>{t('sign_up')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.loginRedirect} onPress={() => navigation.navigate('Login')}>
+            <Text style={{ color: '#fff' }}>{t('login_redirect')}</Text>
+          </TouchableOpacity>
+          <Text style={{ color: '#fff' }}>{t('or')}</Text>
+          <View style={styles.socialIconsContainer}>
+            <TouchableOpacity>
+              <Image source={require('../../../assets/icons/google.png')} style={styles.socialIcon} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Image source={require('../../../assets/icons/facebook.png')} style={styles.socialIcon} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Image source={require('../../../assets/icons/apple.png')} style={[styles.socialIcon, { tintColor: 'white' }]} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </ImageBackground>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -134,18 +132,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     height: '80%', // 70% of the screen height
-    //justifyContent: 'center',
     alignItems: 'center',
-    width : '100%',
+    width: '100%',
     borderRadius: 40,
-    padding : 20,
+    padding: 20,
     flexDirection: 'column',
   },
   header: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    width: '100%', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     marginBottom: 20,
   },
   logo: {
@@ -160,7 +157,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    justifyContent:"center",
+    justifyContent: "center",
     width: '100%',
     height: 50,
     borderWidth: 1,
@@ -187,7 +184,7 @@ const styles = StyleSheet.create({
   signUpButton: {
     width: '100%',
     height: 40,
-    backgroundColor: '#58c487', // Customize the color as needed
+    backgroundColor: '#58c487',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
@@ -208,7 +205,6 @@ const styles = StyleSheet.create({
   socialIcon: {
     width: 30,
     height: 30,
-    
   },
   loginRedirect: {
     marginTop: 20,

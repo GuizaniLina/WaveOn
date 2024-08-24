@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, Text, View, Modal } from 'react-native';
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import { Alert, StyleSheet, TouchableOpacity, Text, View, Modal, RefreshControl, ScrollView } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import DeviceContainer from './components/DeviceContainer';
 import TwoLampsContainer from './components/TwoLampsContainer';
@@ -10,39 +10,54 @@ import { connectMQTT, toggleDeviceState, publishMQTT, disconnectMQTT } from '../
 import LottieView from 'lottie-react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import * as Permissions from 'expo-permissions';
+import { ThemeContext } from '../ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
-export default function Devices() {
+export default function Devices({ navigation }) {
+  const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [nodes, setNodes] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isScannerVisible, setIsScannerVisible] = useState(false);
   const [hasPermission, setHasPermission] = useState(null);
+  const [refreshing, setRefreshing] = useState(false); // State to manage refresh control
 
-  useEffect(() => {
-    const fetchNodes = async () => {
-      try {
-        const USER_ID = await AsyncStorage.getItem('idclient');
-        const nodesString = await AsyncStorage.getItem(`nodes_${USER_ID}`);
-        if (nodesString) {
-          const parsedNodes = JSON.parse(nodesString).map(data => new Node(data));
-          setNodes(parsedNodes);
-        } else {
-          console.warn('No nodes data found in AsyncStorage.');
-          setNodes([]);
-        }
-      } catch (error) {
-        console.error('Error parsing nodes data:', error);
-        Alert.alert('Error', 'Error retrieving nodes data');
+  const fetchNodes = async () => {
+    try {
+      const USER_ID = await AsyncStorage.getItem('idclient');
+      const nodesString = await AsyncStorage.getItem(`nodes_${USER_ID}`);
+      if (nodesString) {
+        const parsedNodes = JSON.parse(nodesString).map(data => new Node(data));
+        setNodes(parsedNodes);
+      } else {
+        console.warn('No nodes data found in AsyncStorage.');
         setNodes([]);
       }
-    };
+    } catch (error) {
+      console.error('Error parsing nodes data:', error);
+      Alert.alert('Error', 'Error retrieving nodes data');
+      setNodes([]);
+    } finally {
+      setRefreshing(false); // Stop the refreshing animation
+    }
+  };
 
-    fetchNodes();
+  useEffect(() => {
+    fetchNodes(); // Fetch nodes initially
+  }, []); // Run on component mount
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNodes(); // Manually trigger data refresh
+  };
+
+  useEffect(() => {
     const updateDevices = (updatedDevices) => {
       setNodes((prevNodes) =>
         prevNodes.map(node => {
           const updatedDevice = updatedDevices.find(dev => dev.unicastAddress === node.unicastAddress);
           if (updatedDevice) {
+            //console.log('updateee',updatedDevice);
             node.updateFromDevice(updatedDevice);
           }
           return node;
@@ -110,6 +125,7 @@ export default function Devices() {
       onLongPress: drag,
       key: node.deviceKey,
       title: node.name,
+      onSliderChange: (value) => publishMQTT(node.unicastAddress, node.getElementAddresses()[0], value,'BlindsLevel'),
     };
 
     const handlePressLamp1 = () => {
@@ -119,6 +135,11 @@ export default function Devices() {
     const handlePressLamp2 = () => {
       toggleDeviceState(node, 1);
     };
+    const handleNavigateToControl = () => {
+      navigation.navigate('TwoLampsControl', { node });
+    };
+
+    
 
     switch (node.pid) {
       case 0:
@@ -126,7 +147,8 @@ export default function Devices() {
           <DeviceContainer
             {...commonProps}
             icon={require('../../assets/icons/lampe1.png')}
-            sliderValues={{ min: 0, max: 100 }}
+            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+            onPress={() => navigation.navigate('BlindsControl', { node })}
             infoIcons={[
               { icon: require('../../assets/icons/chrono.png'), color: 'rgba(74, 207, 244, 1)', value: node.getChrono() + ' s' },
               { icon: require('../../assets/icons/eclat.png'), color: 'yellow', value: node.getEclat() + ' %' },
@@ -138,7 +160,8 @@ export default function Devices() {
           <DeviceContainer
             {...commonProps}
             icon={require('../../assets/icons/remote_light.png')}
-            sliderValues={{ min: 0, max: 100 }}
+            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+            onPress={() => navigation.navigate('BlindsControl', { node })}
             infoIcons={[
               { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
             ]}
@@ -150,6 +173,7 @@ export default function Devices() {
             {...commonProps}
             onPressLamp1={handlePressLamp1}
             onPressLamp2={handlePressLamp2}
+            onPress={handleNavigateToControl}
             icon1={require('../../assets/icons/lampe_dark.png')}
             icon2={require('../../assets/icons/lampe_dark.png')}
             level_A={(node.getElementStates()[0]) != null ? (node.getElementStates()[0] + ' %') : '--'}
@@ -171,7 +195,8 @@ export default function Devices() {
           <DeviceContainer
             {...commonProps}
             icon={require('../../assets/icons/volet.png')}
-            sliderValues={{ min: 0, max: 100 }}
+            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+            onPress={() => navigation.navigate('BlindsControl', { node })}
             infoIcons={[
               {
                 icon: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? require('../../assets/icons/no_one.png') : require('../../assets/icons/man.png'),
@@ -189,7 +214,8 @@ export default function Devices() {
           <DeviceContainer
             {...commonProps}
             icon={require('../../assets/icons/antenne.png')}
-            sliderValues={{ min: 0, max: 100 }}
+            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+            onPress={() => navigation.navigate('BlindsControl', { node })}
             infoIcons={[
               { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
             ]}
@@ -203,6 +229,7 @@ export default function Devices() {
             onPressLamp2={handlePressLamp2}
             icon1={require('../../assets/icons/lampe_dark.png')}
             icon2={require('../../assets/icons/lampe_dark.png')}
+            onPress={handleNavigateToControl}
             level_A={(node.getElementStates()[0]) ? (node.getElementStates()[0] + ' %') : '--'}
             level_B={(node.getElementStates()[1]) ? (node.getElementStates()[1] + ' %') : '--'}
             infoIcons={[
@@ -216,7 +243,8 @@ export default function Devices() {
           <DeviceContainer
             {...commonProps}
             icon={require('../../assets/icons/garage.png')}
-            sliderValues={{ min: 0, max: 60 }}
+            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+            onPress={() => navigation.navigate('BlindsControl', { node })}
             infoIcons={[
               { icon: require('../../assets/icons/eclat.png'), color: 'yellow', value: node.getEclat() + ' %' },
             ]}
@@ -258,29 +286,37 @@ export default function Devices() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{'Liste des Appareils'}</Text>
-      <Text style={styles.status}>
-        {isConnected ? 'Connected to MQTT' : 'Connecting...'}
+    <View style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
+      <Text style={[styles.title, { color: theme.$textColor }]}>{t('devices_list_title')}</Text>
+      <Text style={[styles.status, { color: theme.$textColor }]}>
+        {isConnected ? t('mqtt_connected') : t('mqtt_connecting')}
       </Text>
-      {nodes ?
+      {nodes.length > 0 ? (
         <DraggableFlatList
           data={nodes}
           renderItem={renderItem}
           keyExtractor={item => item.deviceKey}
           onDragEnd={handleDragEnd}
           contentContainerStyle={styles.scrollViewContainer}
-        /> : (
-          <View style={styles.content}>
-            <LottieView
-              source={require('../../assets/lottiefile/nodata.json')}
-              autoPlay
-              loop
-              style={styles.lottie_noData}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.$primaryColor]}
             />
-            <Text style={styles.noDataText}>No Devices</Text>
-          </View>
-        )}
+          }
+        />
+      ) : (
+        <View style={styles.content}>
+          <LottieView
+            source={require('../../assets/lottiefile/nodata.json')}
+            autoPlay
+            loop
+            style={styles.lottie_noData}
+          />
+          <Text style={styles.noDataText}>{t('no_devices')}</Text>
+        </View>
+      )}
       <View style={styles.addButtonContainer}>
         <TouchableOpacity onPress={handleAddPress}>
           <LottieView
@@ -299,14 +335,13 @@ export default function Devices() {
         />
         <View style={styles.scannerOverlay}>
           <TouchableOpacity style={styles.cancelButton} onPress={() => setIsScannerVisible(false)}>
-            <Text style={styles.buttonText}>Cancel</Text>
+            <Text style={styles.buttonText}>{t('cancel')}</Text>
           </TouchableOpacity>
         </View>
       </Modal>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

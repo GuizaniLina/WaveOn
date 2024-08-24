@@ -1,15 +1,18 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import downloadFile from './downloadFileService';
+import securityGetService from './securityGetService';
+import automationGetService from './automationGetService';
+import roomGetService from './roomGetService';
 
 const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
 const pingService = async (idclient, iduser, token) => {
     try {
-        const lastUpdate = await AsyncStorage.getItem('lastUpdate') || '2019-10-01 01:01:01'; // Default value
-        const automationlastUpdate = await AsyncStorage.getItem('automationlastUpdate') || '2020-01-01 00:00:00';
-        const securitylastUpdate = await AsyncStorage.getItem('securitylastUpdate') || '2020-01-01 00:00:00';
-        const roomslastUpdate = await AsyncStorage.getItem('roomslastUpdate') || '2020-01-01 00:00:00';
+        const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2019-10-01 01:01:01'; // Default value
+        const automationlastUpdate = await AsyncStorage.getItem(`automationlastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+        const securitylastUpdate = await AsyncStorage.getItem(`securitylastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+        const roomslastUpdate = await AsyncStorage.getItem(`roomslastUpdate_${idclient}`) || '2020-01-01 00:00:00';
 
         const requestData = {
             idclient,
@@ -27,16 +30,29 @@ const pingService = async (idclient, iduser, token) => {
         console.log('Sending ping request:', requestData);
 
         const response = await axios.post(`${BASE_URL}/ping/`, requestData);
-       
-       
+        const responseData = response.data;
+       console.log('responseData',responseData);
 
+     // Handle updates based on response flags
+   /*  if (responseData.networkUpdated === 1) {
+        console.log('Network is updated. Downloading latest file...');
+        await downloadFile(idclient, iduser, token);
+    }
 
-        if (response.data.networkUpdated == 0) {
-            console.log('Newer version available. Downloading file...');
-            await downloadFile(idclient, iduser, token);
-        } else {
-            console.log('Local version is up-to-date.');
-        }
+    if (responseData.roomsUpdated === 1) {
+        console.log('Rooms are updated. Fetching latest rooms data...');
+        await roomGetService(idclient, iduser, 1, token);
+    }
+
+    if (responseData.automationUpdated === 1) {
+        console.log('Automation data is updated. Fetching latest automation data...');
+        await automationGetService(idclient, iduser,1, token);
+    }
+
+    if (responseData.securityUpdated === 1) {
+        console.log('Security data is updated. Fetching latest security data...');
+        await securityGetService(idclient, iduser,1, token);
+    }*/
 
         return response.data;
     } catch (error) {

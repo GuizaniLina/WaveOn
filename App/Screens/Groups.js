@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import LottieView from 'lottie-react-native';
+import { ThemeContext } from '../ThemeProvider';
 
 const Groups = () => {
+  const { theme} = useContext(ThemeContext);
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container , {backgroundColor: theme.$backgroundColor}]}>
      
      
       <View style={styles.content}>
@@ -14,8 +16,8 @@ const Groups = () => {
           loop
           style={styles.lottie}
         />
-        <Text style={styles.noDataText}>AUCUN GROUPE CONFIGURÉ</Text>
-        <Text style={styles.noDataDescription}>
+        <Text style={[styles.noDataText , {color : theme.$textColor}]}>AUCUN GROUPE CONFIGURÉ</Text>
+        <Text style={[styles.noDataDescription ,{color:theme.$textColor}]}>
           Créez un groupe pour contrôler vos équipements. Tous les groupes montrés ici peuvent être abonnés à partir du menu configuration de dispositif.
         </Text>
       </View>

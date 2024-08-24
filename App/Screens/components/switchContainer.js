@@ -1,50 +1,40 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useContext, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Switch } from 'react-native';
+import { ThemeContext } from '../../ThemeProvider';
 
 const SwitchContainer = ({ title, icon, infoIcons, onLongPress }) => {
-  const [isOn, setIsOn] = useState(true);
+  const [isOn, setIsOn] = useState(false);
+  const { theme } = useContext(ThemeContext);
 
-  const handleOnPress = () => {
-    setIsOn(true);
-  };
-
-  const handleOffPress = () => {
-    setIsOn(false);
-  };
+  const toggleSwitch = () => setIsOn(previousState => !previousState);
 
   return (
-    <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
+    <TouchableOpacity onLongPress={onLongPress} style={[styles.deviceContainer, { backgroundColor: theme.$standard, borderColor: theme.$standard }]}>
       <View style={styles.cercle}>
         <Image source={icon} style={styles.icon} />
       </View>
 
       <View style={styles.textContainer}>
-        <Text style={styles.deviceTitle}>{title}</Text>
-        
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, isOn ? styles.activeButton : styles.inactiveButton]}
-            onPress={handleOnPress}
-          >
-            <Text style={styles.buttonText}>On</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, !isOn ? styles.activeButton : styles.inactiveButton]}
-            onPress={handleOffPress}
-          >
-            <Text style={styles.buttonText}>Off</Text>
-          </TouchableOpacity>
+        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>{title}</Text>
+
+        <View style={styles.switchContainer}>
+          <Text style={[styles.stateText , {color : theme.$textColor}]}>State : {isOn ? 'On' : 'Off'}</Text>
+         
+          <Switch
+            trackColor={{ false: theme.$standard, true: '#81b0ff' }}
+            thumbColor={isOn ? theme.$primaryColor : '#58c487'}
+           // ios_backgroundColor="#3e3e3e"
+            onValueChange={toggleSwitch}
+            value={isOn}
+          />
         </View>
       </View>
 
       <View style={styles.iconContainer}>
         {infoIcons.map((info, index) => (
           <View key={index} style={styles.infoContainer}>
-            <Image
-              source={info.icon}
-              style={[styles.infoIcon, { tintColor: info.color }]}
-            />
-            <Text style={styles.value}>{info.value}</Text>
+            <Image source={info.icon} style={[styles.infoIcon, { tintColor: info.color }]} />
+            <Text style={[styles.value, { color: theme.$textColor }]}>{info.value}</Text>
           </View>
         ))}
       </View>
@@ -63,6 +53,10 @@ const styles = StyleSheet.create({
     padding: 7,
     marginBottom: 16,
     elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   cercle: {
     width: 50,
@@ -93,38 +87,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: 'white',
   },
-  buttonContainer: {
+  switchContainer: {
     flexDirection: 'row',
-    marginBottom: 12,
-    width: 120,
-    marginLeft: 30,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 5,
-    marginHorizontal: 5,
     alignItems: 'center',
-    borderRadius: 5,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    marginLeft: 10,
+    width: 120,
   },
-  activeButton: {
-    backgroundColor: '#4CAF50',
-  },
-  inactiveButton: {
-    backgroundColor: '#F44336',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  stateText: {
+    fontSize: 13,
     fontWeight: 'bold',
-  },
-  sliderContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  slider: {
-    width: 130,
-    height: 35,
-    marginBottom: 10,
   },
   iconContainer: {
     flex: 0.35,
@@ -135,13 +108,12 @@ const styles = StyleSheet.create({
   },
   infoIcon: {
     width: 15,
-    height:15,
+    height: 15,
     marginHorizontal: 5,
     marginBottom: 7,
   },
   value: {
-    
-    paddingTop : 2,
+    paddingTop: 2,
     fontSize: 12,
     color: 'white',
   },

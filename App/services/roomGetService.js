@@ -6,10 +6,10 @@ const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 const roomGetService = async (idclient, iduser, idNetwork, token) => {
     try {
         // Obtenir la date de la dernière mise à jour depuis AsyncStorage
-        const lastUpdate = await AsyncStorage.getItem('lastUpdate') || '2020-01-01 00:00:00';
-        const automationlastUpdate = await AsyncStorage.getItem('automationlastUpdate') || '2020-01-01 00:00:00';
-        const securitylastUpdate = await AsyncStorage.getItem('securitylastUpdate') || '2020-01-01 00:00:00';
-        const roomslastUpdate = await AsyncStorage.getItem('roomslastUpdate') || '2020-01-01 00:00:00';
+        const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+        const automationlastUpdate = await AsyncStorage.getItem(`automationlastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+        const securitylastUpdate = await AsyncStorage.getItem(`securitylastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+        const roomslastUpdate = await AsyncStorage.getItem(`roomslastUpdate_${idclient}`) || '2020-01-01 00:00:00';
 
 
         // Structure de la requête
@@ -31,7 +31,7 @@ const roomGetService = async (idclient, iduser, idNetwork, token) => {
         if (response.data && response.data.rooms && response.data.assignments) {
             await AsyncStorage.setItem('rooms', JSON.stringify(response.data.rooms));
             await AsyncStorage.setItem('assignments', JSON.stringify(response.data.assignments));
-            await AsyncStorage.setItem('roomslastUpdate', JSON.stringify(response.data.roomsLastUpdate));
+            await AsyncStorage.setItem(`roomslastUpdate_${idclient}`, JSON.stringify(response.data.roomsLastUpdate));
             console.log('Données des salles stockées avec succès');
         } else {
             console.error('Réponse invalide du service');

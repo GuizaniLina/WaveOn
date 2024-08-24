@@ -6,9 +6,9 @@ const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 const automationGetService = async (idclient, iduser, idNetwork, token) => {
   try {
     // Get the last update dates from AsyncStorage
-    const lastUpdate = await AsyncStorage.getItem('lastUpdate') || '2020-01-01 00:00:00';
-    const automationlastUpdate = await AsyncStorage.getItem('automationlastUpdate') || '2020-01-01 00:00:00';
-    const roomslastUpdate = await AsyncStorage.getItem('roomslastUpdate') || '2020-01-01 00:00:00';
+    const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+    const automationlastUpdate = await AsyncStorage.getItem(`automationlastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+    const roomslastUpdate = await AsyncStorage.getItem(`roomslastUpdate_${idclient}`) || '2020-01-01 00:00:00';
     
     // Prepare the request data
     const requestData = {
@@ -31,7 +31,7 @@ const automationGetService = async (idclient, iduser, idNetwork, token) => {
       // Store data in AsyncStorage
       await AsyncStorage.setItem('automationFile', JSON.stringify(response.data));
       await AsyncStorage.setItem('automations', JSON.stringify(response.data.automations));
-      await AsyncStorage.setItem('automationlastUpdate', JSON.stringify(response.data.automationsLastUpdate));
+      await AsyncStorage.setItem(`automationlastUpdate_${idclient}`, JSON.stringify(response.data.automationsLastUpdate));
       console.log('Automation data successfully stored');
     } else {
       console.error('Invalid response from service');

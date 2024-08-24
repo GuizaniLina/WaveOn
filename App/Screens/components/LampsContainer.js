@@ -1,15 +1,20 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, TouchableOpacity, Image, StyleSheet, Text } from 'react-native';
+import { ThemeContext } from '../../ThemeProvider';
 
-const LampsContainer = ({ level_A, level_B, onPressLamp1, onPressLamp2 }) => {
+const LampsContainer = ({ level_A, level_B, onPressLamp1, onPressLamp2, onPress }) => {
   const isLevelActive = (level) => level !== '0 %' && level !== '--';
+  const { theme } = useContext(ThemeContext);
 
   return (
-  <View style={styles.deviceContainer}>
-     <View style={styles.textContainer}>
-        <Text style={styles.deviceTitle}>Light</Text>
-        </View>
-       
+    <TouchableOpacity 
+      style={[styles.deviceContainer, { backgroundColor: theme.$standard, borderColor: theme.$standard }]}
+      onPress={onPress} // Navigate to TwoLampsControlScreen
+    >
+      <View style={styles.textContainer}>
+        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>Light</Text>
+      </View>
+
       <View style={styles.lampContainer}>
         <View style={[styles.cercle, isLevelActive(level_A) ? styles.cercleActive : {}]}>
           <TouchableOpacity onPress={onPressLamp1}>
@@ -22,40 +27,34 @@ const LampsContainer = ({ level_A, level_B, onPressLamp1, onPressLamp2 }) => {
           </TouchableOpacity>
         </View>
       </View>
-     
-       
-      </View>
-    
-      
-   
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  lampContainer :{
-    flexDirection:'row',
-    margin : 5   
-    
+  lampContainer: {
+    flexDirection: 'row',
+    margin: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
-  LevelContainer:{
-    flexDirection:'row',
-    
+  LevelContainer: {
+    flexDirection: 'row',
   },
   deviceTitle: {
     fontSize: 18,
     marginTop: 5,
     fontWeight: 'bold',
     marginBottom: 14,
-    color :'white'
+    color: 'white',
   },
   bodyinfo: {
     fontSize: 12,
-   // marginTop: 5,
     fontWeight: 'bold',
-   // marginBottom: 5,
-    color :'white'
+    color: 'white',
   },
- 
   cercle: {
     width: 50,
     height: 50,
@@ -77,26 +76,26 @@ const styles = StyleSheet.create({
     flex: 1,
     borderColor: 'white',
     borderWidth: 0.3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   icon: {
     width: 30,
     height: 30,
     tintColor: '#FFF',
   },
-
- 
   textContainer: {
-   flex  : 1,
-
+    flex: 1,
   },
   cercleActive: {
-    backgroundColor: 'rgba(172, 208, 170, 0.8)', // White background for active level
+    backgroundColor: 'white', // White background for active level
     borderColor: '#000', // Black border for active level
   },
   iconActive: {
     tintColor: '#000', // Black icon for active level
   },
-
 });
 
 export default LampsContainer;

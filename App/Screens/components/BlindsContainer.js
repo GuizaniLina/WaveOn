@@ -1,47 +1,58 @@
-import React from 'react';
+import React, { useState,useContext } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { ThemeContext } from '../../ThemeProvider';
 
-const BlindsContainer = ({ sliderValues }) => {
+const BlindsContainer = ({ sliderValues, onPress,onSliderChange }) => {
+  const { theme } = useContext(ThemeContext);
+  const [sliderValue, setSliderValue] = useState(sliderValues);
+
+  const handleSliderChange = (value) => {
+    setSliderValue(value);
+    if (onSliderChange) {
+      onSliderChange(value);
+    }
+  };
   return (
-    <View style={styles.deviceContainer}>
-        <View style={styles.textContainer}>
-        <Text style={styles.deviceTitle}>Blinds</Text>
-        </View>
-        <View style={styles.headerContainer}>
-      <View style={styles.cercle}>
-        <TouchableOpacity>
+    <TouchableOpacity onPress={onPress} style={[styles.deviceContainer, { backgroundColor: theme.$standard, borderColor: theme.$standard }]}>
+      <View style={styles.textContainer}>
+        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>Volet</Text>
+      </View>
+      <View style={styles.headerContainer}>
+        <View style={styles.cercle}>
           <Image source={require('../../../assets/icons/volet.png')} style={styles.icon} />
-        </TouchableOpacity>
-      </View> 
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={100}
-            minimumTrackTintColor="rgba(172, 208, 170, 0.8)"
-            maximumTrackTintColor="#000000"
-          />
-       
-      
-       </View>
-    
-    </View>
+        </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={100}
+          value={sliderValues}
+          minimumTrackTintColor="#fff"
+          maximumTrackTintColor="#000000"
+          onValueChange={handleSliderChange}
+        />
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-    deviceContainer: {
-        backgroundColor: 'rgba(69, 66, 66, 0.52)',
-        margin: 7,
-        padding: 5,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
-        borderColor: 'white',
-        borderWidth: 0.3,
-        height :120
-      },
+  deviceContainer: {
+    backgroundColor: 'rgba(69, 66, 66, 0.52)',
+    margin: 7,
+    padding: 5,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    borderColor: 'white',
+    borderWidth: 0.3,
+    height: 120,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
+  },
   cercle: {
     width: 40,
     height: 40,
@@ -51,42 +62,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#333',
-   // margin: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   icon: {
-    justifyContent:"center",
-    alignItems : "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     width: 25,
     height: 25,
     tintColor: '#FFF',
-    //marginHorizontal: 10,
   },
   textContainer: {
     flex: 1,
-   
   },
   deviceTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-   // marginBottom: 16,
     color: 'white',
   },
   headerContainer: {
-  
     alignItems: 'center',
-   
   },
- 
- 
- 
   slider: {
     width: 140,
-  //  height: 20,
-   
-   // transform: [{ rotate: '270deg' }]
-   
   },
-  
 });
 
 export default BlindsContainer;

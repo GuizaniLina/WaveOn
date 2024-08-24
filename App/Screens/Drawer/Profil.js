@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect ,useContext} from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeContext } from '../../ThemeProvider';
 
 const Profil = ({ navigation }) => {
+  const { theme } = useContext(ThemeContext);
   const [isAdminChecked, setAdminChecked] = useState(false);
   const [isGatewayChecked, setGatewayChecked] = useState(false);
   const [isBluetoothChecked, setBluetoothChecked] = useState(true);
@@ -71,63 +73,63 @@ const Profil = ({ navigation }) => {
 
   return (
     
-    <View style={styles.container}>
+    <View style={[styles.container , { backgroundColor: theme.$backgroundColor }]}>
       <View style={styles.topBar}>
       <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <FontAwesome5 name="arrow-left" size={24} color="white" />
+            <FontAwesome5 name="arrow-left" size={24} color={theme.$iconColor} />
           </TouchableOpacity>
         <TouchableOpacity onPress={''}>
-          <Image source={require('../../../assets/icons/notification.png')} style={styles.icon} />
+          <Image source={require('../../../assets/icons/notification.png')} style={[styles.icon , {tintColor :theme.$iconColor}]} />
         </TouchableOpacity>
       </View>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profil</Text>
       </View>
-      <Text style={styles.sectionTitle}>
-        <FontAwesome5 name="info-circle" size={16} color="black" /> Informations de compte
+      <Text style={[styles.sectionTitle , { backgroundColor : theme.$standard  , color :theme.$textColor}]}>
+        <FontAwesome5 name="info-circle" size={16} color={theme.$textColor} /> Informations de compte
       </Text>
       <View style={styles.section}>
         <View style={styles.row}>
-          <FontAwesome5 name="user" size={20} color="white" />
+          <FontAwesome5 name="user" size={20} color= {theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={styles.label}>{userInfo.clientname}</Text>
-            <Text style={styles.info}>{userInfo.email}</Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>{userInfo.clientname}</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{userInfo.email}</Text>
           </View>
         </View>
         <View style={styles.row}>
-          <FontAwesome5 name="server" size={20} color="#fff" />
+          <FontAwesome5 name="server" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={styles.label}>Connexion au Serveur</Text>
-            <Text style={styles.info}>Connecté</Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>Connexion au Serveur</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>Connecté</Text>
           </View>
         </View>
         <View style={styles.row}>
-          <FontAwesome5 name="plug" size={20} color="white" />
+          <FontAwesome5 name="plug" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={styles.label}>État du Gateway</Text>
-            <Text style={styles.info}>{userInfo.isgateway ? 'Connecté' : 'Déconnecté'}</Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>État du Gateway</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{userInfo.isgateway ? 'Connecté' : 'Déconnecté'}</Text>
           </View>
         </View>
         <View style={styles.row}>
-          <FontAwesome5 name="clock" size={20} color="white" />
+          <FontAwesome5 name="clock" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={styles.label}>Dernière mise à jour du Réseau</Text>
-            <Text style={styles.info}>{lastUpdate || 'N/A'}</Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>Dernière mise à jour du Réseau</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{lastUpdate || 'N/A'}</Text>
           </View>
         </View>
       </View>
-      <Text style={styles.sectionTitle}>
-        <FontAwesome5 name="cogs" size={16} color="black" /> Configuration
+      <Text style={[styles.sectionTitle , { backgroundColor : theme.$standard , color :theme.$textColor}]}>
+        <FontAwesome5 name="cogs" size={16} color={theme.$textColor} /> Configuration
       </Text>
       <View style={styles.section}>
         <View style={styles.row}>
-          <FontAwesome5 name="user-shield" size={20} color="white" />
+          <FontAwesome5 name="user-shield" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={styles.label}>Administrateur</Text>
-            <Text style={styles.info}>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>Administrateur</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>
               L'activation de cette fonction fait de votre téléphone l'administrateur de votre réseau.
             </Text>
           </View>
@@ -139,10 +141,10 @@ const Profil = ({ navigation }) => {
           />
         </View>
         <View style={styles.row}>
-          <FontAwesome5 name="network-wired" size={20} color="white" />
+          <FontAwesome5 name="network-wired" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={styles.label}>Gateway</Text>
-            <Text style={styles.info}>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>Gateway</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>
               L'activation de cette fonction fait de votre téléphone la passerelle vers le cloud.
             </Text>
           </View>
@@ -154,10 +156,10 @@ const Profil = ({ navigation }) => {
           />
         </View>
         <View style={styles.row}>
-          <FontAwesome5 name="bluetooth" size={20} color="white" />
+          <FontAwesome5 name="bluetooth" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={styles.label}>Connexion Bluetooth automatique</Text>
-            <Text style={styles.info}>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>Connexion Bluetooth automatique</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>
               Activez cette fonctionnalité si vous souhaitez utiliser la connexion Bluetooth locale.
             </Text>
           </View>
@@ -197,6 +199,10 @@ const styles = StyleSheet.create({
     padding: 10,
     color: 'black',
     backgroundColor: 'grey',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   icon: {
     width: 25,

@@ -1,29 +1,42 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
+import EStyleSheet from 'react-native-extended-stylesheet';
 
 export const ThemeContext = createContext();
 
-export const ThemeProvider = ({ children, themeType }) => {
- 
+const darkTheme = {
+  $backgroundColor: '#333',
+  $textColor: '#fff',
+  $buttonTextColor: '#fff',
+  $iconColor: '#333',
+  $standard:'#444',
+  $container : 'grey'
+};
 
-  const darkTheme = {
-    backgroundColor: 'rgba(34, 34, 34, 0.8)',
-    textColor: '#fff',
-    buttonTextColor: '#fff',
-    // Define other dark theme properties as needed
+const lightTheme = {
+  $backgroundColor: 'rgba(223, 220, 201, 0.8)',
+  $textColor: '#333',
+  $buttonTextColor: '#000',
+  $iconColor: '#fff',
+  $standard:'rgba(223, 220, 201, 0.8)',
+  $container : '#E4E6D9'
+};
+
+export const ThemeProvider = ({ children, themeType: initialThemeType }) => {
+  const [themeType, setThemeType] = useState(initialThemeType);
+  const [themeKey, setThemeKey] = useState(0);
+
+  useEffect(() => {
+    const theme = themeType === 'dark' ? darkTheme : lightTheme;
+    EStyleSheet.build(theme);
+    setThemeKey((prevKey) => prevKey + 1); // Increment key to trigger re-render
+  }, [themeType]);
+
+  const setTheme = (newThemeType) => {
+    setThemeType(newThemeType);
   };
-
-  const lightTheme = {
-    backgroundColor: 'rgba(214, 164, 126,0.3)',
-    textColor: '#000',
-    buttonTextColor: '#000',
-    // Define other light theme properties as needed
-  };
-
-  const initialTheme = themeType === 'dark' ? darkTheme : lightTheme;
-  const [theme, setTheme] = useState(initialTheme);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme: themeType === 'dark' ? darkTheme : lightTheme, setTheme, themeKey }}>
       {children}
     </ThemeContext.Provider>
   );

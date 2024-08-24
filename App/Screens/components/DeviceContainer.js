@@ -1,10 +1,60 @@
-import React from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { ThemeContext } from '../../ThemeProvider';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress }) => {
+const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, onPress, onSliderChange }) => {
+  const { theme } = useContext(ThemeContext);
+  const [sliderValue, setSliderValue] = useState(sliderValues?.initial || 0);
+  const [isIncreasing, setIsIncreasing] = useState(false);
+  const [intervalId, setIntervalId] = useState(null);
+
+  const handleSliderChange = (value) => {
+    setSliderValue(value);
+    if (onSliderChange) {
+      onSliderChange(value);
+    }
+  };
+
+  const handleStopPress = () => {
+    if (isIncreasing) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    } else {
+      const id = setInterval(() => {
+        setSliderValue((prevValue) => {
+          const newValue = Math.min(prevValue + 1, sliderValues.max);
+          if (newValue === sliderValues.max) {
+            clearInterval(id);
+            setIntervalId(null);
+            setIsIncreasing(false);
+          }
+          if (onSliderChange) {
+            onSliderChange(newValue);
+          }
+          return newValue;
+        });
+      }, 100); // Adjust the speed of increment here
+      setIntervalId(id);
+    }
+    setIsIncreasing(!isIncreasing);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [intervalId]);
+
   return (
-    <TouchableOpacity onLongPress={onLongPress} style={styles.deviceContainer}>
+    <TouchableOpacity 
+      onPress={onPress} 
+      onLongPress={onLongPress} 
+      style={[styles.deviceContainer, { backgroundColor: theme.$standard, borderColor: theme.$standard }]}
+    >
       <View style={styles.cercle}>
         <TouchableOpacity>
           <Image source={icon} style={styles.icon} />
@@ -12,18 +62,29 @@ const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress }) 
       </View>
 
       <View style={styles.textContainer}>
-        <Text style={styles.deviceTitle}>{title}</Text>
+        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>{title}</Text>
+        <Text style={[styles.bodyinfo , {color : theme.$textColor}]}>Level: {`${sliderValue}%`} </Text>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.stopButton}>
-            <View style={styles.stopIcon} />
+          <TouchableOpacity style={styles.stopButton} onPress={handleStopPress}>
+            {isIncreasing ? (
+              <FontAwesome5 name="pause" size={12} color="#FFF" />
+            ) : (
+              <FontAwesome5 name="play" size={12} color="#FFF" />
+            )}
           </TouchableOpacity>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={100}
-            minimumTrackTintColor="#FFFFFF"
-            maximumTrackTintColor="#000000"
-          />
+          <View style={styles.sliderContainer}>
+            <Slider
+              style={styles.slider}
+              minimumValue={sliderValues.min}
+              maximumValue={sliderValues.max}
+              step={1}
+              value={sliderValue}
+              minimumTrackTintColor={theme.$primaryColor}
+              maximumTrackTintColor={theme.$secondaryColor}
+              thumbTintColor={theme.$primaryColor}
+              onValueChange={handleSliderChange}
+            />
+          </View>
         </View>
       </View>
 
@@ -31,7 +92,7 @@ const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress }) 
         {infoIcons.map((info, index) => (
           <View key={index} style={styles.infoContainer}>
             <Image source={info.icon} style={[styles.infoIcon, { tintColor: info.color }]} />
-            <Text style={styles.value}>{info.value}</Text>
+            <Text style={[styles.value ,{ color: theme.$textColor }]}>{info.value}</Text>
           </View>
         ))}
       </View>
@@ -44,12 +105,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: '#000',
     backgroundColor: 'grey',
     borderRadius: 35,
     padding: 7,
     marginBottom: 16,
     elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   cercle: {
     width: 50,
@@ -62,13 +127,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     margin: 5,
   },
+  bodyinfo: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333'
+  },
   icon: {
-    justifyContent:"center",
-    alignItems : "center",
+    justifyContent: "center",
+    alignItems: "center",
     width: 30,
     height: 30,
     tintColor: '#FFF',
-    //marginHorizontal: 10,
   },
   textContainer: {
     flex: 1,
@@ -85,46 +154,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 10,
   },
+  sliderContainer: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  slider: {
+    width: '100%',
+    height: 35,
+  },
   stopButton: {
     width: 28,
     height: 28,
     borderRadius: 25,
-    backgroundColor: 'red',
+    backgroundColor: 'rgba(112, 160, 214, 1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop:5,
-    marginRight :5
-   // marginLeft: 1,
+    marginTop: 5,
+    marginRight: 5,
   },
   stopIcon: {
     width: 10,
     height: 10,
     backgroundColor: '#FFF',
   },
-  slider: {
-    width: 130,
-    height: 35,
-    marginBottom : 10,
-   
-  },
   iconContainer: {
     flex: 0.35,
-  // margin :2 ,
-    //height : '80%',
-   paddingTop : 5,
-  //  backgroundColor : 'white'
+    paddingTop: 5,
   },
   infoContainer: {
     flexDirection: 'row',
   },
-  infoIcon: { 
+  infoIcon: {
     width: 15,
     height: 15,
     marginHorizontal: 5,
-    marginBottom :8,
+    marginBottom: 8,
   },
   value: {
-    paddingTop : 2,
+    paddingTop: 2,
     fontSize: 11,
     color: 'white',
   },

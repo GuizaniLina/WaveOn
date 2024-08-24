@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, SafeAreaView, StyleSheet, ScrollView, Alert, TouchableOpacity, RefreshControl } from 'react-native';
 import AutomationContainer from './components/AutomationContainer';
 import Automation from '../Class/Automation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import automationGetService from '../services/automationGetService';
 import automationUpdateService from '../services/automationUpdateService';
 import LottieView from 'lottie-react-native';
+import { ThemeContext } from '../ThemeProvider';
+import { useTranslation } from 'react-i18next'; // Import useTranslation hook
 
 const ICONS = {
   '-2': require('../../assets/icons/mix.png'),
@@ -22,53 +24,100 @@ const ICONS = {
 };
 
 const AutomationScreen = ({ navigation }) => {
+  const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation(); // Use the t function for translations
   const [automations, setAutomations] = useState([]);
   const [isAdmin, setIsAdmin] = useState(null);
   const [isGateway, setIsGateway] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchAutomation = async () => {
+    try {
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const idNetwork = 1;
+      const token = await AsyncStorage.getItem('token');
+   
+      setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
+      setIsGateway(await AsyncStorage.getItem('user_isgateway'));
+      
+      const automationResponse = await automationGetService(idclient, iduser, idNetwork, token);
+      console.log('Automation data:', automationResponse);
+
+      const automationInstances = automationResponse.automations.map(autoData => new Automation(autoData));
+      setAutomations(automationInstances);
+    } catch (error) {
+      console.error('Erreur lors du parsing des données des automations:', error);
+      Alert.alert(t('error'), t('automation_update_failed'));
+    }
+  };
 
   useEffect(() => {
-    const fetchAutomation = async () => {
-      try {
-        const idclient = await AsyncStorage.getItem('idclient');
-        const iduser = await AsyncStorage.getItem('iduser');
-        const idNetwork = 1;
-        const token = await AsyncStorage.getItem('token');
-        const ad = await AsyncStorage.getItem('user_isadmin')
-        setIsAdmin ( await AsyncStorage.getItem('user_isadmin'));
-         setIsGateway (  await AsyncStorage.getItem('user_isgateway'));
-        
-        const automationResponse = await automationGetService(idclient, iduser, idNetwork, token);
-        console.log('Automation data:', automationResponse);
+    fetchAutomation();
+  }, []);
 
-        const automationInstances = automationResponse.automations.map(autoData => new Automation(autoData));
-        setAutomations(automationInstances);
-      } catch (error) {
-        console.error('Erreur lors du parsing des données des automations:', error);
-        Alert.alert('Erreur', 'Erreur lors de la récupération des données des automations');
+  useEffect(() => {
+    const checkProfileChange = async () => {
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const token = await AsyncStorage.getItem('token');
+      
+      if (idclient && iduser && token) {
+        fetchAutomation();
       }
     };
 
-    fetchAutomation();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', checkProfileChange);
+    return unsubscribe;
+  }, [navigation]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchAutomation();
+    setRefreshing(false);
+  };
 
   const handleToggleSwitch = (index) => {
     setAutomations((prevAutomations) => {
       const updatedAutomations = [...prevAutomations];
       const automation = updatedAutomations[index];
       if (automation instanceof Automation) {
-        // Toggle the state
         automation.state = automation.isActive() ? 0 : 1;
-        console.log(`Updated automation state: ${automation.state}`);
-        
-        // Save the updated automation (e.g., API call or local storage update)
-        saveAutomationChanges(automation); // This is a function you need to implement
+        saveAutomationChanges(automation);
       } else {
         console.error('L’objet automation n’est pas une instance de la classe Automation.');
       }
       return updatedAutomations;
     });
   };
+
+  const handleEditAutomation = (automation) => {
+    navigation.navigate('AutomationFormScreen', { 
+      editAutomation: automation, 
+      updateAutomation: handleUpdateAutomation 
+    });
+  };
+
+  const handleUpdateAutomation = async (updatedAutomation) => {
+    try {
+      const updatedAutomations = automations.map(auto => 
+        auto.idAutomation === updatedAutomation.idAutomation ? new Automation(updatedAutomation) : auto
+      );
+      setAutomations(updatedAutomations);
   
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const idNetwork = 1;
+      const token = await AsyncStorage.getItem('token');
+  
+      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
+      Alert.alert(t('success'), t('automation_updated'));
+    } catch (error) {
+      console.error('Error updating automation:', error);
+      Alert.alert(t('error'), t('automation_update_failed'));
+    }
+  };
+
   const saveAutomationChanges = async (automation) => {
     try {
       const updatedAutomations = automations.map((auto) => 
@@ -82,12 +131,12 @@ const AutomationScreen = ({ navigation }) => {
       const token = await AsyncStorage.getItem('token');
   
       await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
-     
     } catch (error) {
       console.error('Error saving automation:', error);
-      Alert.alert('Error', 'Failed to save automation. Please try again.');
+      Alert.alert(t('error'), t('automation_update_failed'));
     }
   };
+
   const handleDeleteAutomation = async (indexToDelete) => {
     try {
       const updatedAutomations = automations.filter((_, index) => index !== indexToDelete);
@@ -99,16 +148,16 @@ const AutomationScreen = ({ navigation }) => {
       const token = await AsyncStorage.getItem('token');
   
       await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
-      Alert.alert('Success', 'Automation deleted successfully');
+      Alert.alert(t('success'), t('automation_deleted'));
     } catch (error) {
       console.error('Error deleting automation:', error);
-      Alert.alert('Error', 'Failed to delete automation. Please try again.');
+      Alert.alert(t('error'), t('automation_delete_failed'));
     }
   };
+
   const handleAddAutomation = async (newAutomation) => {
     try {
       const updatedAutomations = [...automations, new Automation(newAutomation)];
-      console.log('updatedAutomations',updatedAutomations),
       setAutomations(updatedAutomations);
   
       const idclient = await AsyncStorage.getItem('idclient');
@@ -117,20 +166,23 @@ const AutomationScreen = ({ navigation }) => {
       const token = await AsyncStorage.getItem('token');
   
       await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
-      Alert.alert('Success', 'Automation added successfully');
+      Alert.alert(t('success'), t('automation_added'));
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'automation:', error);
-      Alert.alert('Erreur', 'Erreur lors de l\'ajout de l\'automation');
+      Alert.alert(t('error'), t('automation_add_failed'));
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Automation</Text>
+        <Text style={styles.headerTitle}>{t('automation')}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
         {automations.map((automation, index) => {
           if (automation instanceof Automation) {
             return (
@@ -141,8 +193,9 @@ const AutomationScreen = ({ navigation }) => {
                 }
                 text={automation.name}
                 isEnabled={automation.isActive()}
-                onToggle={() => ((isAdmin==='0' )&&(isGateway==='0')) ? Alert.alert('Sorry', 'Should be an Admin or Gateway'):handleToggleSwitch(index)}
-                onDelete={() =>((isAdmin==='0' )&&(isGateway==='0')) ? Alert.alert('Sorry', 'Should be an Admin or Gateway'): handleDeleteAutomation(index)}
+                onToggle={() => ((isAdmin === '0' ) && (isGateway === '0')) ? Alert.alert(t('sorry'), t('should_be_admin_gateway')) : handleToggleSwitch(index)}
+                onDelete={() => ((isAdmin === '0' ) && (isGateway === '0')) ? Alert.alert(t('sorry'), t('should_be_admin_gateway')) : handleDeleteAutomation(index)}
+                onPress={() => handleEditAutomation(automation)} 
               />
             );
           } else {
@@ -152,7 +205,9 @@ const AutomationScreen = ({ navigation }) => {
         })}
       </ScrollView>
 
-      <TouchableOpacity style={styles.addButtonContainer} onPress={() => ((isAdmin==='0' )&&(isGateway==='0')) ? Alert.alert('Sorry', 'Should be an Admin or Gateway') :navigation.navigate('AutomationFormScreen', { addAutomation: handleAddAutomation }) }>
+      <TouchableOpacity 
+        style={styles.addButtonContainer} 
+        onPress={() => ((isAdmin === '0' ) && (isGateway === '0')) ? Alert.alert(t('sorry'), t('should_be_admin_gateway')) : navigation.navigate('AutomationFormScreen', { addAutomation: handleAddAutomation })}>
         <LottieView
           source={require('../../assets/lottiefile/Add.json')}
           autoPlay
@@ -168,7 +223,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#333',
-    padding: 16,
   },
   header: {
     backgroundColor: '#58c487',

@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ImageBackground, TouchableOpacity, Switch, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, Image, StyleSheet, Modal, ImageBackground, TouchableOpacity, Switch, FlatList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import LampsContainer from './components/LampsContainer';
 import BlindsContainer from './components/BlindsContainer';
-import { connectMQTT, toggleDeviceState, disconnectMQTT } from '../services/mqttService'; // Importez les fonctions MQTT
-import Node from '../Class/Node'; // Assurez-vous d'importer la classe Node
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Importez AsyncStorage
+import { connectMQTT, toggleDeviceState, disconnectMQTT, publishMQTT } from '../services/mqttService';
+import Node from '../Class/Node';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeContext } from '../ThemeProvider';
 
 const deviceComponents = {
   2: LampsContainer,
@@ -16,17 +17,22 @@ const deviceComponents = {
 
 const RoomDetails = ({ route }) => {
   const { roomId, roomName, roomImage, assignments } = route.params;
+  const { theme } = useContext(ThemeContext);
+  const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
   const [deviceStates, setDeviceStates] = useState(
     assignments.reduce((acc, assignment) => ({ ...acc, [assignment.id]: false }), {})
   );
   const [hasClimatiseur, setHasClimatiseur] = useState(false);
   const [hasPorte, setHasPorte] = useState(false);
-  const [devices, setDevices] = useState([]);
-  const [nodes, setNodes] = useState([]); // State to store Node instances
+  const [nodes, setNodes] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [filteredNodes, setFilteredNodes] = useState([]);
   const [temperature, setTemperature] = useState(null);
+  const [humidity, setHumidity] = useState(null);
+  const [luminosity, setLuminosity] = useState(null);
+  const [occupancy, setOccupancy] = useState(null);
+
 
   useEffect(() => {
     const climatiseurPresent = assignments.some(assignment => assignment.deviceType === 7 && assignment.idRoom === roomId);
@@ -36,6 +42,7 @@ const RoomDetails = ({ route }) => {
 
     const loadNodesFromStorage = async () => {
       try {
+        const USER_ID = await AsyncStorage.getItem('idclient');
         const nodesString = await AsyncStorage.getItem(`nodes_${USER_ID}`);
         if (nodesString) {
           const storedNodes = JSON.parse(nodesString);
@@ -50,28 +57,20 @@ const RoomDetails = ({ route }) => {
     loadNodesFromStorage();
 
     const updateDevices = (updatedDevices) => {
-      console.log('Received updated devices:', updatedDevices); // Log updated devices
-      const newDevices = updatedDevices.map(device => ({
-        unicastAddress: device.unicastAddress,
-        deviceType: device.deviceType,
-        elementIndex: device.elementIndex,
-      }));
-      setDevices(newDevices);
-      
-      // Create or update Node instances
-      const updatedNodes = newDevices.map(device => {
-        const existingNode = nodes.find(node => node.unicastAddress === device.unicastAddress);
-       
-        if (existingNode) {
-          existingNode.updateFromDevice(device);
-          return existingNode;
-        } else {
-          const newNode = new Node(device);
-          newNode.updateFromDevice(device);
-          return newNode;
-        }
-      });
-      setNodes(updatedNodes);
+      setNodes((prevNodes) =>
+        prevNodes.map(node => {
+          const deviceInRoom = assignments.find(assignment => 
+            assignment.idRoom === roomId && 
+            assignment.unicast === node.unicastAddress
+          );
+          const updatedDevice = updatedDevices.find(dev => dev.unicastAddress === node.unicastAddress);
+
+          if (deviceInRoom && updatedDevice) {
+            node.updateFromDevice(updatedDevice);
+          }
+          return node;
+        })
+      );
     };
 
     connectMQTT(setIsConnected, updateDevices)
@@ -83,36 +82,18 @@ const RoomDetails = ({ route }) => {
     return () => {
       disconnectMQTT();
     };
-  }, [assignments]);
+  }, [assignments, roomId]);
 
   useEffect(() => {
     const devicesInRoom = assignments.filter(assignment => assignment.idRoom === roomId);
-    console.log('Assignments in room:', devicesInRoom);
-    console.log('All devices:', devices);
-  
+
     if (devicesInRoom.length > 0) {
-      // Filter nodes based on unicastAddress matching devices in the room
-      const filtered = nodes.filter(node => {
-        const nodeUnicast = String(node.unicastAddress);
-        return devicesInRoom.some(assignment => {
-          const assignmentUnicast = String(assignment.unicast);
-          console.log('Comparing', nodeUnicast, 'with', assignmentUnicast);
-          return assignmentUnicast === nodeUnicast;
-        });
-      });
-  
-      // Combine filtered nodes with existing filteredNodes, avoiding duplicates
-      const combined = [...filteredNodes];
-      filtered.forEach(newNode => {
-        if (!combined.some(existingNode => existingNode.unicastAddress === newNode.unicastAddress)) {
-          combined.push(newNode);
-        }
-      });
-  
-      console.log('Filtered nodes:', combined);
-      setFilteredNodes(combined);
+      const filtered = nodes.filter(node => 
+        devicesInRoom.some(assignment => assignment.unicast === node.unicastAddress)
+      );
+
+      setFilteredNodes(filtered);
     } else {
-      console.error('devicesInRoom is empty or not an array');
       setFilteredNodes([]);
     }
   }, [nodes, assignments, roomId]);
@@ -121,9 +102,15 @@ const RoomDetails = ({ route }) => {
     const tempNode = filteredNodes.find(node => node.getTemperature() != null);
 
     if (tempNode) {
-      setTemperature(tempNode.getTemperature() );
+      setTemperature(tempNode.getTemperature());
+      setOccupancy(tempNode.getOccupancy());
+      setLuminosity(tempNode.getLuminosity());
+      setHumidity(tempNode.getHumidity());
     } else {
       setTemperature('--');
+      setOccupancy('--');
+      setLuminosity('--');
+      setHumidity('--');
     }
   }, [filteredNodes]);
 
@@ -141,35 +128,119 @@ const RoomDetails = ({ route }) => {
       console.error('Error toggling device state:', error);
     }
   };
+  const handleNavigateToControl = (node) => {
+    navigation.navigate('TwoLampsControl', { node });
+  };
+  
+  const handlePressLamp1 = async (node) => {
+    try {
+      await toggleDeviceState(node, 0);
+    } catch (error) {
+      console.error('Error toggling Lamp 1 state:', error);
+    }
+  };
+  
+  const handlePressLamp2 = async (node) => {
+    try {
+      await toggleDeviceState(node, 1);
+    } catch (error) {
+      console.error('Error toggling Lamp 2 state:', error);
+    }
+  };
+
+  const handleOptionsPress = () => {
+    setModalVisible(true);
+  };
+  const handleModify = () => {
+    setModalVisible(false);
+    // Navigate to modify screen or perform modify action
+    console.log('Modify option selected');
+  };
+
+  const handleDelete = () => {
+    setModalVisible(false);
+    // Perform delete action (e.g., show confirmation alert)
+    Alert.alert(
+      'Delete Room',
+      'Are you sure you want to delete this room?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', onPress: () => console.log('Delete option selected') },
+      ]
+    );
+  };
+  // Handles navigation to the BlindsControlScreen
+  const handleNavigateToBlindsControl = (node) => {
+    navigation.navigate('BlindsControl', { node });
+  };
+
+  const handleBlindsSliderChange = async (node, value) => {
+    await publishMQTT(node.unicastAddress, node.getElementAddresses()[0], value, 'BlindsLevel');
+  };
 
   return (
-    <ImageBackground source={{ uri: roomImage }} style={styles.background} blurRadius={6}>
+    <ImageBackground source={{ uri: roomImage }} style={styles.background} blurRadius={4}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <FontAwesome5 name="arrow-left" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{roomName}</Text>
+      <View style={[styles.header, { backgroundColor: theme.$backgroundColor }]}>
+  <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+    <FontAwesome5 name="arrow-left" size={24} color={theme.$textColor} />
+  </TouchableOpacity>
+  
+  <Text style={[styles.headerTitle, { color: theme.$textColor }]}>{roomName}</Text>
+  
+  <TouchableOpacity style={styles.optionsButton} onPress={handleOptionsPress}>
+    <FontAwesome5 name="ellipsis-h" size={24} color={theme.$textColor} />
+  </TouchableOpacity>
+  <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity style={styles.modalOption} onPress={handleModify}>
+              <Text style={styles.modalOptionText}>Modify</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalOption} onPress={handleDelete}>
+              <Text style={styles.modalOptionText}>Delete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+      </Modal>
+</View>
 
         <View style={styles.temperatureContainer}>
           <View style={styles.infoContainer}>
-        <Text style={styles.temperatureText}>{temperature}</Text>
+            <Text style={styles.temperatureText}>{temperature}</Text>
             <Text style={styles.temperature}>°c</Text>
           </View>
           <View>
             <View style={styles.infoContainer}>
               <Text style={styles.temperatureLabel}>Humidity :</Text>
-              <Text style={styles.value}>--</Text>
+              <Text style={styles.value}>{humidity} %</Text>
             </View>
             <View style={styles.infoContainer}>
               <Text style={styles.temperatureLabel}>Luminosity :</Text>
-              <Text style={styles.value}>--</Text>
+              <Text style={styles.value}>{luminosity} %</Text>
             </View>
             <View style={styles.infoContainer}>
-              <Image source={require('../../assets/icons/no_one.png')} style={[styles.infoIcon, {tintColor:'white'}]} />
-              <Text style={styles.value}>--</Text>
-            </View>
+  <Image 
+    source={
+      occupancy === null || occupancy === '--' || occupancy === 0 
+        ? require('../../assets/icons/no_one.png') 
+        : require('../../assets/icons/man.png')
+    } 
+    style={[
+      styles.infoIcon, 
+      { tintColor: occupancy === null || occupancy === '--' || occupancy === 0 ? 'white' : 'red' }
+    ]} 
+  />
+  <Text style={styles.value}>{occupancy}</Text>
+</View>
           </View>
         </View>
 
@@ -198,24 +269,27 @@ const RoomDetails = ({ route }) => {
           </View>
         </View>
 
-        <View style={styles.deviceListContainer}>
+        <View style={[styles.deviceListContainer, { backgroundColor: theme.$backgroundColor }]}>
           <FlatList
             data={filteredNodes}
             keyExtractor={(item) => item.unicastAddress.toString()}
             numColumns={2}
             renderItem={({ item }) => {
               const DeviceComponent = deviceComponents[item.pid];
-              return DeviceComponent ? (
+              if (!DeviceComponent) return null;
+
+              return (
                 <DeviceComponent
-                  key={item.unicastAddress}
-                  assignment={item}
-                  onToggle={() => handleDeviceToggle(item, item.elementIndex)}
+                
                   level_A={item.pid === 2 ? ((item.getElementStates()[0]) != null ? (item.getElementStates()[0] + ' %') : '--') : undefined}
                   level_B={item.pid === 2 ? ((item.getElementStates()[1]) != null ? (item.getElementStates()[1] + ' %') : '--') : undefined}
-                  onPressLamp1={item.pid === 2 ? '' : undefined}
-                  onPressLamp2={item.pid === 2 ? '' : undefined}
+                  sliderValues={item.pid === 3 ? item.getElementStates()[0] || 0 : undefined}
+                  onPressLamp1={item.pid === 2 ? () => handlePressLamp1(item) : undefined}
+                  onPressLamp2={item.pid === 2 ? () => handlePressLamp2(item) : undefined}
+                  onPress={() => item.pid === 2 ? handleNavigateToControl(item) : item.pid === 3 ? handleNavigateToBlindsControl(item) : null}
+                  onSliderChange={item.pid === 3 ? (value) => handleBlindsSliderChange(item, value) : undefined}
                 />
-              ) : null;
+              );
             }}
           />
         </View>
@@ -223,7 +297,6 @@ const RoomDetails = ({ route }) => {
     </ImageBackground>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -237,12 +310,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '96%',
     padding: 5,
-    top: 40,
-    left: 10,
-    backgroundColor: 'rgba(4, 4, 4, 0.65)',
-    borderRadius: 50,
+    justifyContent: 'space-between', 
+    borderBottomEndRadius: 35,
+    borderBottomStartRadius: 35,
+    height: 120,
+    backgroundColor: '#333',
+  },
+  optionsButton: {
+    padding: 10,
   },
   backButton: {
     padding: 10,
@@ -256,7 +332,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     color: '#FFF',
-    marginLeft: 10,
+   // marginLeft: 10,
+    
     fontWeight: 'bold',
   },
   temperatureContainer: {
@@ -264,10 +341,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 20,
-    backgroundColor: 'rgba(172, 208, 170, 0.8)',
+    backgroundColor: 'rgba(172, 208, 170, 0.95)',
     borderRadius: 20,
     margin: 20,
-    marginTop: 60,
     height: '25%',
   },
   temperature: {
@@ -293,7 +369,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 20,
     width: '100%',
-    backgroundColor: 'rgba(4, 4, 4, 0.65)',
+    backgroundColor: '#333',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -302,13 +378,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   value: {
-    fontSize: 20,
+    fontSize: 13,
     marginBottom: 20,
     color: 'white',
   },
   infoIcon: {
-    width: 30,
-    height: 30,
+    width: 50,
+    height: 50,
   },
   deviceContainer: {
     backgroundColor: 'rgba(69, 69, 69, 0.85)',
@@ -342,6 +418,71 @@ const styles = StyleSheet.create({
   },
   disabledContainer: {
     opacity: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 20,
+    width: 300,
+    alignItems: 'center',
+  },
+  modalOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#CCC',
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalOptionText: {
+    fontSize: 18,
+    color: '#333',
+  },
+  modalCancel: {
+    paddingVertical: 15,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 18,
+    color: 'red',
+  },modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 20,
+    width: 300,
+    alignItems: 'center',
+  },
+  modalOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#CCC',
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalOptionText: {
+    fontSize: 18,
+    color: '#333',
+  },
+  modalCancel: {
+    paddingVertical: 15,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 18,
+    color: 'red',
   },
 });
 

@@ -1,57 +1,82 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, SafeAreaView, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, SafeAreaView, Alert, TouchableOpacity } from 'react-native';
 import roomGetService from '../services/roomGetService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
+import WeatherComponent from './components/WeatherComponent';
+import EStyleSheet from 'react-native-extended-stylesheet';
+import { ThemeContext } from '../ThemeProvider';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next'; // Import useTranslation hook
 
 const Home = () => {
+  const { theme } = useContext(ThemeContext);
   const navigation = useNavigation();
+  const { t } = useTranslation(); // Use the t function for translations
   const [rooms, setRooms] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [deviceCount, setDeviceCount] = useState({});
+  const [isAdmin, setIsAdmin] = useState(null);
+  const [isGateway, setIsGateway] = useState(null);
+
+  const fetchRooms = async () => {
+    try {
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const idNetwork = 1;
+      const token = await AsyncStorage.getItem('token');
+      setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
+      setIsGateway(await AsyncStorage.getItem('user_isgateway'));
+
+     const roomResponse = await roomGetService(idclient, iduser, idNetwork, token);
+      setRooms(roomResponse.rooms);
+      setAssignments(roomResponse.assignments);
+
+      let roomsArray = [];
+      let assignmentsArray = [];
+
+      try {
+        roomsArray = typeof roomResponse.rooms === 'string' ? JSON.parse(roomResponse.rooms) : roomResponse.rooms;
+      } catch (error) {
+        console.error('Erreur lors du parsing des données des salles:', error);
+        Alert.alert('Erreur', 'Erreur lors de la récupération des données des salles');
+      }
+
+      try {
+        assignmentsArray = typeof roomResponse.assignments === 'string' ? JSON.parse(roomResponse.assignments) : roomResponse.assignments;
+      } catch (error) {
+        console.error('Erreur lors du parsing des données des affectations:', error);
+        Alert.alert('Erreur', 'Erreur lors de la récupération des données des affectations');
+      }
+
+      const deviceCountByRoom = countDevicesByRoom(roomsArray, assignmentsArray);
+      setDeviceCount(deviceCountByRoom);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données des salles:', error);
+      Alert.alert('Erreur', 'Échec de la récupération des données des salles');
+    }
+  };
 
   useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const idclient = await AsyncStorage.getItem('idclient');
-        const iduser = await AsyncStorage.getItem('iduser');
-        const idNetwork = 1;
-        const token = await AsyncStorage.getItem('token');
+    fetchRooms();
+  }, []); // Run on component mount
 
-        const roomResponse = await roomGetService(idclient, iduser, idNetwork, token);
-        
-        setRooms(roomResponse.rooms);
-        setAssignments(roomResponse.assignments);
-        
-        let roomsArray = [];
-        let assignmentsArray = [];
-        
-        try {
-          roomsArray = typeof roomResponse.rooms === 'string' ? JSON.parse(roomResponse.rooms) : roomResponse.rooms;
-        } catch (error) {
-          console.error('Erreur lors du parsing des données des salles:', error);
-          Alert.alert('Erreur', 'Erreur lors de la récupération des données des salles');
-        } 
-        
-        try {
-          assignmentsArray = typeof roomResponse.assignments === 'string' ? JSON.parse(roomResponse.assignments) : roomResponse.assignments;
-        } catch (error) {
-          console.error('Erreur lors du parsing des données des affectations:', error);
-          Alert.alert('Erreur', 'Erreur lors de la récupération des données des affectations');
-        }
-    
-        const deviceCountByRoom = countDevicesByRoom(roomsArray, assignmentsArray);
-        setDeviceCount(deviceCountByRoom);
-      } catch (error) {
-        console.error('Erreur lors de la récupération des données des salles:', error);
-        Alert.alert('Erreur', 'Échec de la récupération des données des salles');
+  useEffect(() => {
+    const checkProfileChange = async () => {
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const token = await AsyncStorage.getItem('token');
+      
+      if (idclient && iduser && token) {
+        fetchRooms();
       }
     };
 
-    fetchRooms();
-  }, []);
- 
+    const unsubscribe = navigation.addListener('focus', checkProfileChange);
+    return unsubscribe;
+  }, [navigation]);
+
   const countDevicesByRoom = (rooms, assignments) => {
     const deviceCountByRoom = {};
     rooms.forEach(room => {
@@ -73,7 +98,8 @@ const Home = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
+      <WeatherComponent /> 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -81,31 +107,70 @@ const Home = () => {
       >
         {rooms.map((room) => {
           const deviceCount = countDevicesByType(assignments, room.idRoom);
+          const totalDevices = Object.values(deviceCount).reduce((a, b) => a + b, 0);
           const pictureUri = `data:image/jpeg;base64,${room.picture}`;
 
           return (
             <TouchableOpacity 
               key={room.idRoom} 
               style={styles.card} 
-              onPress={() => navigation.navigate('RoomDetails', { roomId: room.idRoom, roomName: room.name, roomImage: pictureUri, assignments })}
+              onPress={() => navigation.navigate('RoomDetails', {
+                roomId: room.idRoom,
+                roomName: room.name,
+                roomImage: pictureUri,
+                assignments
+              })}
             >
-              <Text style={styles.cardTitle}>{room.name}</Text>
-              <Image source={{ uri: pictureUri }} style={styles.cardImage} />
-              <Text style={styles.detail}>{Object.values(deviceCount).reduce((a, b) => a + b, 0)} Devices</Text>
-              <View style={styles.deviceContainer}>
-                <Text style={styles.num}>{deviceCount[2]}</Text>
-                <Image source={require('../../assets/icons/lampe1.png')} style={styles.icon} />
-                <Text style={styles.num}>{deviceCount[8]}</Text>
-                <Image source={require('../../assets/icons/volet.png')} style={styles.icon} />
-                <Text style={styles.num}>{deviceCount[3]}</Text>
-                <Image source={require('../../assets/icons/garage.png')} style={styles.icon} />
-                <Text style={styles.num}>{deviceCount[7]}</Text>
-                <Image source={require('../../assets/icons/clima.png')} style={styles.icon} />
-              </View>
+              <ImageBackground source={{ uri: pictureUri }} style={styles.cardImageBackground}>
+                <LinearGradient
+                  colors={['#58c487', 'rgba(112, 160, 214, 0.3)']} 
+                  style={styles.overlay}
+                >
+                  <Text style={styles.cardTitle}>{room.name}</Text>
+                </LinearGradient>
+                <LinearGradient
+                  colors={['rgba(88, 209, 91, 0.3)', 'rgba(112, 160, 214, 1)']} 
+                  style={styles.deviceContainer}
+                >
+                  <Text style={styles.totalDevices}>{totalDevices} {t('devices')}</Text>
+                  <View style={styles.deviceIconContainer}>
+                    <View style={styles.deviceItem}>
+                      <View style={styles.iconCircle}>
+                        <Image source={require('../../assets/icons/lampe1.png')} style={styles.icon} />
+                      </View>
+                      <Text style={styles.num}>{deviceCount[2]}</Text>
+                    </View>
+                    <View style={styles.deviceItem}>
+                      <View style={styles.iconCircle}>
+                        <Image source={require('../../assets/icons/volet.png')} style={styles.icon} />
+                      </View>
+                      <Text style={styles.num}>{deviceCount[8]}</Text>
+                    </View>
+                    <View style={styles.deviceItem}>
+                      <View style={styles.iconCircle}>
+                        <Image source={require('../../assets/icons/garage.png')} style={styles.icon} />
+                      </View>
+                      <Text style={styles.num}>{deviceCount[3]}</Text>
+                    </View>
+                    <View style={styles.deviceItem}>
+                      <View style={styles.iconCircle}>
+                        <Image source={require('../../assets/icons/clima.png')} style={styles.icon} />
+                      </View>
+                      <Text style={styles.num}>{deviceCount[7]}</Text>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </ImageBackground>
             </TouchableOpacity>
           );
         })}
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity 
+          style={[styles.addcard , {backgroundColor : theme.$standard}]} 
+          onPress={() => ((isAdmin === '0') && (isGateway === '0')) 
+            ? Alert.alert(t('sorry'), t('should_be_admin_gateway')) 
+            : navigation.navigate('RoomFormScreen', { rooms, assignments })
+          }
+        >
           <LottieView
             source={require('../../assets/lottiefile/Add.json')}
             autoPlay
@@ -118,62 +183,106 @@ const Home = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = EStyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2C2F33',
+    backgroundColor: '$backgroundColor',
   },
-  scrollView: {
-    paddingVertical: 20,
-  },
-  card: {
-    marginHorizontal: 10,
-    paddingBottom: 10,
-    backgroundColor: '#3E4349',
-    borderRadius: 10,
-    overflow: 'hidden',
-    width: 300,
-    height: 600,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  scrollView: {},
   Addicon: {
     width: 100,
     height: 100,
   },
-  cardImage: {
+  card: {
+    marginHorizontal: 10,
+    backgroundColor: '#3E4349',
+    borderRadius: 10,
+    width: 260,
+    height: '95%',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  addcard: {
+    marginHorizontal: 10,
+    backgroundColor: 'rgba(223, 220, 201, 0.8)',
+    borderRadius: 10,
+    width: 260,
+    height: '95%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
+  },
+  cardImageBackground: {
     width: '100%',
-    height: '75%',
-    resizeMode: 'cover',
-    marginBottom: 10,
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    width: '100%',
+    position: 'absolute',
+    borderRadius: 10,
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    backgroundColor: 'rgba(66, 80, 65, 0.65)',
+    alignItems: 'center',
   },
   cardTitle: {
-    bottom: 10,
-    color: '#FFF',
-    fontSize: 24,
+    fontSize: 30,
+    color: '#fff',
     fontWeight: 'bold',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   deviceContainer: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(112, 160, 214, 0.5)',
+    borderRadius: 10,
+    paddingTop: 9,
+    position: 'absolute',
+    width: '100%',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  deviceIconContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingTop: 20,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    width: '100%',
   },
-  icon: {
-    width: 30,
-    height: 30,
-    marginHorizontal: 11,
-    tintColor: '#FFF',
-  },
-  detail: {
-    color: '#FFF',
-    fontSize: 20,
+  totalDevices: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
+  deviceItem: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  iconCircle: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 10,
+    marginBottom: 5,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+  },
   num: {
-    color: '#FFF',
-    fontSize: 17,
-    lineHeight: 30,
-    textAlign: 'center',
+    color: '#fff',
+    fontSize: 14,
   },
 });
 
