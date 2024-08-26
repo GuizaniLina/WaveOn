@@ -183,7 +183,21 @@
   "enable_camera_permissions": "Veuillez activer les autorisations de la caméra dans vos paramètres",
   "error_retrieving_data": "Erreur lors de la récupération des données des appareils",
   "error_saving_data": "Erreur lors de l'enregistrement des données des appareils",
-  "invalid_qr_code": "Données de QR code invalides"
+  "invalid_qr_code": "Données de QR code invalides",
+  "camera_permission": "Vous avez refusé d’autoriser cette application à accéder à vos photos!",
+  "select_warning" :"Veuillez sélectionner au moins un dispositif",
+  "bedroom":"Chambre parent",
+  "kitchen":"Cuisine",
+  "bathroom":"Salle de bain",
+  "garden":"Jardin",
+  "kidsroom":"Chambre enfant",
+  "livingroom":"Salon",
+  "personalize":"Personnaliser",
+  "theme": "Thème",
+  "darkTheme": "Thème Sombre",
+  "language": "Langue",
+  "english": "Anglais",
+  "french": "Français"
 }
 
 

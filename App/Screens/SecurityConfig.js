@@ -6,9 +6,11 @@ import securityUpdateService from '../services/securityUpdateService';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { ThemeContext } from '../ThemeProvider';
 import Node from '../Class/Node';
+import { useTranslation } from 'react-i18next';
 
 const SecurityConfig = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [emails, setEmails] = useState(['']);
   const [phoneNumbers, setPhoneNumbers] = useState(['']);
   const [securityTarget, setSecurityTarget] = useState([]);
@@ -33,7 +35,7 @@ const SecurityConfig = ({ navigation }) => {
         }
       } catch (error) {
         console.error('Error fetching nodes:', error);
-        Alert.alert('Error', 'Error retrieving nodes');
+        Alert.alert(t('error'), t('error_retrieving_nodes'));
       }
     };
 
@@ -114,10 +116,10 @@ const SecurityConfig = ({ navigation }) => {
       await securityUpdateService(idclient, iduser, idNetwork, token, securityOption, updateSecurityConfig, []);
       await AsyncStorage.setItem('securityConfig', JSON.stringify(updateSecurityConfig));
 
-      Alert.alert('Success', 'Security configuration updated successfully.');
+      Alert.alert(t('success'), t('security_config_updated'));
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Failed to update security configuration. Please try again.');
+      Alert.alert(t('error'), t('failed_to_update_security_config'));
       console.error('Failed to update security configuration:', error);
     }
   };
@@ -176,18 +178,18 @@ const SecurityConfig = ({ navigation }) => {
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Configuration</Text>
+          <Text style={styles.headerTitle}>{t('configuration')}</Text>
         </View>
 
         <View style={[styles.formContainer, { backgroundColor: theme.$standard }]}>
-          <Text style={[styles.label, { color: theme.$textColor }]}>Emergency Emails</Text>
+          <Text style={[styles.label, { color: theme.$textColor }]}>{t('emergency_emails')}</Text>
           {emails.map((email, index) => (
             <View key={index} style={styles.inputRow}>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
                 value={email}
                 onChangeText={(value) => handleEmailChange(index, value)}
-                placeholder="Email"
+                placeholder={t('email')}
               />
               {index === 0 ? (
                 <TouchableOpacity onPress={addEmailField} style={styles.addButton}>
@@ -201,14 +203,14 @@ const SecurityConfig = ({ navigation }) => {
             </View>
           ))}
 
-          <Text style={[styles.label, { color: theme.$textColor }]}>Emergency Phone Numbers</Text>
+          <Text style={[styles.label, { color: theme.$textColor }]}>{t('emergency_phone_numbers')}</Text>
           {phoneNumbers.map((number, index) => (
             <View key={index} style={styles.inputRow}>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
                 value={number}
                 onChangeText={(value) => handlePhoneNumberChange(index, value)}
-                placeholder="Phone Number"
+                placeholder={t('phone_number')}
                 keyboardType="phone-pad"
               />
               {index === 0 ? (
@@ -223,22 +225,22 @@ const SecurityConfig = ({ navigation }) => {
             </View>
           ))}
 
-          <Text style={[styles.label, { color: theme.$textColor }]}>Alarm Delay (Seconds)</Text>
+          <Text style={[styles.label, { color: theme.$textColor }]}>{t('alarm_delay_seconds')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
             value={alarmDelay}
             onChangeText={setAlarmDelay}
-            placeholder="Alarm Delay"
+            placeholder={t('alarm_delay')}
             keyboardType="numeric"
           />
-          <Text style={[styles.label, { color: theme.$textColor }]}>Security Target</Text>
+          <Text style={[styles.label, { color: theme.$textColor }]}>{t('security_target')}</Text>
           <MultiSelect
             items={transformedNodes.map(device => ({ id: device.deviceKey, name: device.name }))}
             uniqueKey="id"
             onSelectedItemsChange={setSecurityTarget}
             selectedItems={securityTarget}
-            selectText="Select Security Targets"
-            searchInputPlaceholderText="Search Devices..."
+            selectText={t('select_security_targets')}
+            searchInputPlaceholderText={t('search_devices')}
             displayKey="name"
             styleSelectorContainer={[styles.multiSelectSelector, { maxHeight: 100 }]}
             styleDropdownMenuSubsection={[styles.multiSelectDropdown]}
@@ -249,8 +251,8 @@ const SecurityConfig = ({ navigation }) => {
           />
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={() => ((isAdmin === '0') && (isGateway === '0')) ? Alert.alert('Sorry', 'Should be an Admin or Gateway') : handleSave()}>
-          <Text style={styles.saveButtonText}>Save</Text>
+        <TouchableOpacity style={styles.saveButton} onPress={() => ((isAdmin === '0') && (isGateway === '0')) ? Alert.alert(t('error'), t('admin_gateway_error')) : handleSave()}>
+          <Text style={styles.saveButtonText}>{t('save')}</Text>
         </TouchableOpacity>
       </View>
     </TouchableWithoutFeedback>

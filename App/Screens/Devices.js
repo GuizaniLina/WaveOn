@@ -20,7 +20,8 @@ export default function Devices({ navigation }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isScannerVisible, setIsScannerVisible] = useState(false);
   const [hasPermission, setHasPermission] = useState(null);
-  const [refreshing, setRefreshing] = useState(false); // State to manage refresh control
+  const [refreshing, setRefreshing] = useState(false); 
+
 
   const fetchNodes = async () => {
     try {
@@ -35,7 +36,7 @@ export default function Devices({ navigation }) {
       }
     } catch (error) {
       console.error('Error parsing nodes data:', error);
-      Alert.alert('Error', 'Error retrieving nodes data');
+      Alert.alert(t('error'), t('error_retrieving_data'));
       setNodes([]);
     } finally {
       setRefreshing(false); // Stop the refreshing animation
@@ -68,7 +69,7 @@ export default function Devices({ navigation }) {
     connectMQTT(setIsConnected, updateDevices)
       .catch(error => {
         console.error('MQTT connection error:', error);
-        Alert.alert('Error', 'Error connecting to MQTT broker');
+        Alert.alert(t('error'), t('error_connecting_mqtt'));
       });
 
     return () => {
@@ -90,15 +91,15 @@ export default function Devices({ navigation }) {
       await AsyncStorage.setItem(`nodes_${USER_ID}`, JSON.stringify(data));
     } catch (error) {
       console.error('Error saving nodes data:', error);
-      Alert.alert('Error', 'Error saving nodes data');
+      Alert.alert(t('error'), t('error_saving_data'));
     }
   };
 
   const handleAddPress = () => {
     if (hasPermission === null) {
-      Alert.alert('Permission', 'Requesting for camera permission');
+      Alert.alert(t('permission'), t('request_camera_permission'));
     } else if (hasPermission === false) {
-      Alert.alert('No access to camera', 'Please enable camera permissions in your settings');
+      Alert.alert(t('no_camera_access'), t('enable_camera_permissions'));
     } else {
       setIsScannerVisible(true);
     }
@@ -115,7 +116,7 @@ export default function Devices({ navigation }) {
       setIsScannerVisible(false);
     } catch (error) {
       console.error('Error adding new device from QR code:', error);
-      Alert.alert('Error', 'Invalid QR code data');
+      Alert.alert(t('error'), t('invalid_qr_code'));
       setIsScannerVisible(false);
     }
   };
@@ -286,12 +287,12 @@ export default function Devices({ navigation }) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
-      <Text style={[styles.title, { color: theme.$textColor }]}>{t('devices_list_title')}</Text>
-      <Text style={[styles.status, { color: theme.$textColor }]}>
-        {isConnected ? t('mqtt_connected') : t('mqtt_connecting')}
+    <View style={[styles.container , {backgroundColor :theme.$backgroundColor}]}>
+      <Text style={[styles.title ,{color : theme.$textColor}]}>{t('devices_list_title')}</Text>
+      <Text style={[styles.status , {color : theme.$textColor}]}>
+      {isConnected ? t('mqtt_connected') : t('mqtt_connecting')}
       </Text>
-      {nodes.length > 0 ? (
+      {nodes ?
         <DraggableFlatList
           data={nodes}
           renderItem={renderItem}
@@ -305,18 +306,17 @@ export default function Devices({ navigation }) {
               colors={[theme.$primaryColor]}
             />
           }
-        />
-      ) : (
-        <View style={styles.content}>
-          <LottieView
-            source={require('../../assets/lottiefile/nodata.json')}
-            autoPlay
-            loop
-            style={styles.lottie_noData}
-          />
-          <Text style={styles.noDataText}>{t('no_devices')}</Text>
-        </View>
-      )}
+        /> : (
+          <View style={styles.content}>
+            <LottieView
+              source={require('../../assets/lottiefile/nodata.json')}
+              autoPlay
+              loop
+              style={styles.lottie_noData}
+            />
+            <Text style={styles.noDataText}>{t('no_devices')}</Text>
+          </View>
+        )}
       <View style={styles.addButtonContainer}>
         <TouchableOpacity onPress={handleAddPress}>
           <LottieView
@@ -342,6 +342,7 @@ export default function Devices({ navigation }) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

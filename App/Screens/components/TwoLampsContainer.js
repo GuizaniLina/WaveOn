@@ -1,10 +1,12 @@
 import React, { useContext } from 'react';
 import { View, TouchableOpacity, Image, StyleSheet, Text } from 'react-native';
 import { ThemeContext } from '../../ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 const TwoLampsContainer = ({ title, icon1, icon2, level_A, level_B, infoIcons, onLongPress, onPressLamp1, onPressLamp2 , onPress}) => {
   const isLevelActive = (level) => level !== '0 %' && level !== '--';
   const { theme} = useContext(ThemeContext);
+  const { t } = useTranslation();
 
   return (
     <TouchableOpacity onLongPress={onLongPress} onPress={onPress} style={[styles.deviceContainer,{backgroundColor :theme.$standard , borderColor:theme.$standard}]}>
@@ -23,8 +25,8 @@ const TwoLampsContainer = ({ title, icon1, icon2, level_A, level_B, infoIcons, o
       <View style={styles.textContainer}>
         <Text style={[styles.deviceTitle ,{ color : theme.$textColor}]}>{title}</Text>
         <View>
-          <Text style={[styles.bodyinfo , {color : theme.$textColor}]}>A Level : {level_A}</Text>
-          <Text style={[styles.bodyinfo, {color : theme.$textColor}, { marginTop: 45 }]}>B Level : {level_B}</Text>
+          <Text style={[styles.bodyinfo , {color : theme.$textColor}]}>A {t('Level')} : {level_A}</Text>
+          <Text style={[styles.bodyinfo, {color : theme.$textColor}, { marginTop: 45 }]}>B {t('Level')} : {level_B}</Text>
         </View>
       </View>
       <View style={styles.iconContainer}>

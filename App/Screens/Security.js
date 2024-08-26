@@ -41,7 +41,7 @@ const Security = ({ navigation }) => {
       const idclient = await AsyncStorage.getItem('idclient');
       const iduser = await AsyncStorage.getItem('iduser');
       const token = await AsyncStorage.getItem('token');
-
+  console.log('iconn',getIcon('Alarm'));
       if (idclient && iduser && token) {
         fetchSecurity();
       }

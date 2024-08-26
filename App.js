@@ -32,6 +32,7 @@ import HouseLocalisationScreen from './App/Screens/Drawer/HouseLocalisationScree
 import EStyleSheet from 'react-native-extended-stylesheet';
 import TwoLampsControlScreen from './App/Screens/TwoLampsControlScreen';
 import BlindsControlScreen from './App/Screens/BlindsControlScreen';
+import CreateGroupScreen from './App/Screens/CreateGroupScreen'
 import './App/i18n'; // Import the i18n configuration
 import { useTranslation } from 'react-i18next';
 
@@ -84,6 +85,7 @@ export default function App() {
       <Stack.Screen name="SwitchProfile" component={SwitchProfileScreen} />
       <Stack.Screen name="TwoLampsControl" component={TwoLampsControlScreen} />
       <Stack.Screen name="BlindsControl" component={BlindsControlScreen} />
+      <Stack.Screen name="CreateGroupScreen" component={CreateGroupScreen} />
     </Stack.Navigator>
   );
 

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Alert } from 'react-native';
 const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
-const roomUpdateService = async (idclient, iduser, token, [updatedRooms], [updatedAssignments]) => {
+const roomUpdateService = async (idclient, iduser, token, updatedRooms, updatedAssignments) => {
   try {
     const formatDateTime = (date) => {
       const year = date.getFullYear();
@@ -17,12 +17,14 @@ const roomUpdateService = async (idclient, iduser, token, [updatedRooms], [updat
     };
  
     const requestData = {
-      idclient,
-      iduser,
-      roomsLastUpdate: formatDateTime(new Date()),
-      token,
-      Rooms: [updatedRooms],
-      assignments : [updatedAssignments] ,
+       
+        idclient:84,
+        iduser:11,
+        roomsLastUpdate:formatDateTime(new Date()),
+        token,
+        Rooms:updatedRooms,
+        assignments:updatedAssignments,
+    
 
       };
     
@@ -38,13 +40,12 @@ const roomUpdateService = async (idclient, iduser, token, [updatedRooms], [updat
     return response.data;
    
   } catch (error) {
-    console.error('Error updating rooms:', error);
      if ( error.response.status === 500) {
-        Alert.alert('Server Error', 'There is a problem with the server. Please try again later.');
+       
       } else {
         Alert.alert('Error', 'An unexpected error occurred. Please try again.');
       }
-      throw new Error('Failed to update room: ' + error.message);
+    
   }
 };
 

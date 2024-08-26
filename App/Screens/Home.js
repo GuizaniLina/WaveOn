@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, SafeAreaView, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, Image, ImageBackground, StyleSheet, ScrollView, SafeAreaView, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import roomGetService from '../services/roomGetService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +17,7 @@ const Home = () => {
   const [rooms, setRooms] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [deviceCount, setDeviceCount] = useState({});
+  const [isLoading, setIsLoading] = useState(true); // State to track loading
   const [isAdmin, setIsAdmin] = useState(null);
   const [isGateway, setIsGateway] = useState(null);
 
@@ -29,7 +30,7 @@ const Home = () => {
       setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
       setIsGateway(await AsyncStorage.getItem('user_isgateway'));
 
-     const roomResponse = await roomGetService(idclient, iduser, idNetwork, token);
+      const roomResponse = await roomGetService(idclient, iduser, idNetwork, token);
       setRooms(roomResponse.rooms);
       setAssignments(roomResponse.assignments);
 
@@ -55,6 +56,8 @@ const Home = () => {
     } catch (error) {
       console.error('Erreur lors de la récupération des données des salles:', error);
       Alert.alert('Erreur', 'Échec de la récupération des données des salles');
+    } finally {
+      setIsLoading(false); // Set loading to false once data is loaded
     }
   };
 
@@ -86,6 +89,36 @@ const Home = () => {
     return deviceCountByRoom;
   };
 
+  // Images...
+  const kitchenImage = require('../../assets/kitchen.jpg');
+  const bedroomImage = require('../../assets/bedroom.jpg');
+  const bathroomImage = require('../../assets/bathroom.jpg');
+  const gardenImage = require('../../assets/garden.jpg');
+  const kidsroomImage = require('../../assets/kidsroom.jpg');
+  const livingroomImage = require('../../assets/livingroom1.jpg');
+
+  const imageMap = {
+    'bedroom.jpg': bedroomImage,
+    'kitchen1.jpg': kitchenImage,
+    'bathroom.jpg': bathroomImage,
+    'garden.jpg': gardenImage,
+    'kidsroom.jpg': kidsroomImage,
+    'livingroom1.jpg': livingroomImage,
+  };
+
+  const getPictureUri = (picture) => {
+    if (picture) {
+      if (picture.startsWith('file://') || picture.startsWith('http')) {
+        return picture;
+      } else if (picture.endsWith('.jpg') || picture.endsWith('.png')) {
+        return imageMap[picture];
+      } else {
+        return { uri: `data:image/jpeg;base64,${picture}` };
+      }
+    }
+    return null;
+  };
+
   const countDevicesByType = (assignments, roomId) => {
     const deviceTypes = [2, 3, 7, 8];
     const deviceCount = {};
@@ -100,85 +133,93 @@ const Home = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
       <WeatherComponent /> 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollView}
-      >
-        {rooms.map((room) => {
-          const deviceCount = countDevicesByType(assignments, room.idRoom);
-          const totalDevices = Object.values(deviceCount).reduce((a, b) => a + b, 0);
-          const pictureUri = `data:image/jpeg;base64,${room.picture}`;
 
-          return (
-            <TouchableOpacity 
-              key={room.idRoom} 
-              style={styles.card} 
-              onPress={() => navigation.navigate('RoomDetails', {
-                roomId: room.idRoom,
-                roomName: room.name,
-                roomImage: pictureUri,
-                assignments
-              })}
-            >
-              <ImageBackground source={{ uri: pictureUri }} style={styles.cardImageBackground}>
-                <LinearGradient
-                  colors={['#58c487', 'rgba(112, 160, 214, 0.3)']} 
-                  style={styles.overlay}
-                >
-                  <Text style={styles.cardTitle}>{room.name}</Text>
-                </LinearGradient>
-                <LinearGradient
-                  colors={['rgba(88, 209, 91, 0.3)', 'rgba(112, 160, 214, 1)']} 
-                  style={styles.deviceContainer}
-                >
-                  <Text style={styles.totalDevices}>{totalDevices} {t('devices')}</Text>
-                  <View style={styles.deviceIconContainer}>
-                    <View style={styles.deviceItem}>
-                      <View style={styles.iconCircle}>
-                        <Image source={require('../../assets/icons/lampe1.png')} style={styles.icon} />
-                      </View>
-                      <Text style={styles.num}>{deviceCount[2]}</Text>
-                    </View>
-                    <View style={styles.deviceItem}>
-                      <View style={styles.iconCircle}>
-                        <Image source={require('../../assets/icons/volet.png')} style={styles.icon} />
-                      </View>
-                      <Text style={styles.num}>{deviceCount[8]}</Text>
-                    </View>
-                    <View style={styles.deviceItem}>
-                      <View style={styles.iconCircle}>
-                        <Image source={require('../../assets/icons/garage.png')} style={styles.icon} />
-                      </View>
-                      <Text style={styles.num}>{deviceCount[3]}</Text>
-                    </View>
-                    <View style={styles.deviceItem}>
-                      <View style={styles.iconCircle}>
-                        <Image source={require('../../assets/icons/clima.png')} style={styles.icon} />
-                      </View>
-                      <Text style={styles.num}>{deviceCount[7]}</Text>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </ImageBackground>
-            </TouchableOpacity>
-          );
-        })}
-        <TouchableOpacity 
-          style={[styles.addcard , {backgroundColor : theme.$standard}]} 
-          onPress={() => ((isAdmin === '0') && (isGateway === '0')) 
-            ? Alert.alert(t('sorry'), t('should_be_admin_gateway')) 
-            : navigation.navigate('RoomFormScreen', { rooms, assignments })
-          }
+      {isLoading ? ( // Show loading spinner while data is loading
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.$primaryColor} />
+          <Text style={{ color: theme.$textColor }}>{t('loading')}</Text>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollView}
         >
-          <LottieView
-            source={require('../../assets/lottiefile/Add.json')}
-            autoPlay
-            loop
-            style={styles.Addicon}
-          />
-        </TouchableOpacity>
-      </ScrollView>
+          {rooms.map((room) => {
+            const deviceCount = countDevicesByType(assignments, room.idRoom);
+            const totalDevices = Object.values(deviceCount).reduce((a, b) => a + b, 0);
+            const pictureUri = getPictureUri(room.picture);
+
+            return (
+              <TouchableOpacity 
+                key={room.idRoom} 
+                style={styles.card} 
+                onPress={() => navigation.navigate('RoomDetails', {
+                  roomId: room.idRoom,
+                  roomName: room.name,
+                  roomImage: pictureUri,
+                  assignments
+                })}
+              >
+                <ImageBackground source={pictureUri} style={styles.cardImageBackground}>
+                  <LinearGradient
+                    colors={['#58c487', 'rgba(112, 160, 214, 0.3)']} 
+                    style={styles.overlay}
+                  >
+                    <Text style={styles.cardTitle}>{room.name}</Text>
+                  </LinearGradient>
+                  <LinearGradient
+                    colors={['rgba(88, 209, 91, 0.3)', 'rgba(112, 160, 214, 1)']} 
+                    style={styles.deviceContainer}
+                  >
+                    <Text style={styles.totalDevices}>{totalDevices} {t('devices')}</Text>
+                    <View style={styles.deviceIconContainer}>
+                      <View style={styles.deviceItem}>
+                        <View style={styles.iconCircle}>
+                          <Image source={require('../../assets/icons/lampe1.png')} style={styles.icon} />
+                        </View>
+                        <Text style={styles.num}>{deviceCount[2]}</Text>
+                      </View>
+                      <View style={styles.deviceItem}>
+                        <View style={styles.iconCircle}>
+                          <Image source={require('../../assets/icons/volet.png')} style={styles.icon} />
+                        </View>
+                        <Text style={styles.num}>{deviceCount[8]}</Text>
+                      </View>
+                      <View style={styles.deviceItem}>
+                        <View style={styles.iconCircle}>
+                          <Image source={require('../../assets/icons/garage.png')} style={styles.icon} />
+                        </View>
+                        <Text style={styles.num}>{deviceCount[3]}</Text>
+                      </View>
+                      <View style={styles.deviceItem}>
+                        <View style={styles.iconCircle}>
+                          <Image source={require('../../assets/icons/clima.png')} style={styles.icon} />
+                        </View>
+                        <Text style={styles.num}>{deviceCount[7]}</Text>
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </ImageBackground>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity 
+            style={[styles.addcard , {backgroundColor : theme.$standard}]} 
+            onPress={() => ((isAdmin === '0') && (isGateway === '0')) 
+              ? Alert.alert(t('sorry'), t('should_be_admin_gateway')) 
+              : navigation.navigate('RoomFormScreen', { rooms, assignments })
+            }
+          >
+            <LottieView
+              source={require('../../assets/lottiefile/Add.json')}
+              autoPlay
+              loop
+              style={styles.Addicon}
+            />
+          </TouchableOpacity>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -187,6 +228,11 @@ const styles = EStyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '$backgroundColor',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {},
   Addicon: {

@@ -183,6 +183,20 @@
   "enable_camera_permissions": "Please enable camera permissions in your settings",
   "error_retrieving_data": "Error retrieving nodes data",
   "error_saving_data": "Error saving nodes data",
-  "invalid_qr_code": "Invalid QR code data"
+  "invalid_qr_code": "Invalid QR code data",
+  "camera_permission" : "You've refused to allow this app to access your photos!",
+  "select_warning" : "Please select at least one device",
+  "bedroom":"bedroom",
+  "kitchen":"Kitchen",
+  "bathroom":"Bathroom",
+  "garden":"Garden",
+  "kidsroom":"Kidsroom",
+  "livingroom":"livingroom",
+  "personalize":"Personalize",
+  "theme": "Theme",
+  "darkTheme": "Dark Theme",
+  "language": "Language",
+  "english": "English",
+  "french": "french"
 
   }

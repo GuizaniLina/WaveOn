@@ -5,10 +5,12 @@ import Slider from '@react-native-community/slider';
 import { ThemeContext } from '../ThemeProvider';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 export default function TwoLampsControlScreen({ route, navigation }) {
   const { node } = route.params;
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [lamp1Brightness, setLamp1Brightness] = useState(node.getElementStates()[0] || 0);
   const [lamp2Brightness, setLamp2Brightness] = useState(node.getElementStates()[1] || 0);
 
@@ -44,12 +46,12 @@ export default function TwoLampsControlScreen({ route, navigation }) {
       </LinearGradient>
 
       <View style={[styles.formContainer, { backgroundColor: theme.$standard }]}>
-        <Text style={[styles.title, { color: theme.$textColor }]}>Control Lamp A</Text>
+        <Text style={[styles.title, { color: theme.$textColor }]}>{t('control_lamp_a')}</Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-          Unicast Address: {node.unicastAddress}
+        {t('unicast_address')}: {node.unicastAddress}
         </Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-          Element Address: {node.getElementAddresses()[0]}
+        {t('element_address')}: {node.getElementAddresses()[0]}
         </Text>
         <Slider
           style={styles.slider}
@@ -62,14 +64,14 @@ export default function TwoLampsControlScreen({ route, navigation }) {
           thumbTintColor={theme.$primaryColor}
           onValueChange={handleLamp1Change}
         />
-        <Text style={[styles.value, { color: theme.$textColor }]}>Brightness: {lamp1Brightness}%</Text>
+        <Text style={[styles.value, { color: theme.$textColor }]}>{t('brightness')}: {lamp1Brightness}%</Text>
 
-        <Text style={[styles.title, { color: theme.$textColor }]}>Control Lamp B</Text>
+        <Text style={[styles.title, { color: theme.$textColor }]}>{t('control_lamp_b')}</Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-          Unicast Address: {node.unicastAddress}
+        {t('unicast_address')}: {node.unicastAddress}
         </Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-          Element Address: {node.getElementAddresses()[1]}
+        {t('element_address')}: {node.getElementAddresses()[1]}
         </Text>
         <Slider
           style={styles.slider}
@@ -82,7 +84,7 @@ export default function TwoLampsControlScreen({ route, navigation }) {
           thumbTintColor={theme.$primaryColor}
           onValueChange={handleLamp2Change}
         />
-        <Text style={[styles.value, { color: theme.$textColor }]}>Brightness: {lamp2Brightness}%</Text>
+        <Text style={[styles.value, { color: theme.$textColor }]}>{t('brightness')}: {lamp2Brightness}%</Text>
       </View>
     </View>
   );

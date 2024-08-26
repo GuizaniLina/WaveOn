@@ -8,10 +8,12 @@ import { startPeriodicPing } from '../services/pingManager';
 import LoginService from '../services/LoginService';
 import downloadFile from '../services/downloadFileService';
 import { ThemeContext } from '../ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 const SwitchProfileScreen = () => {
   const [profiles, setProfiles] = useState([]);
   const { theme, setTheme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [selectedProfile, setSelectedProfile] = useState(null);
   const navigation = useNavigation();
   const [profileChanged, setProfileChanged] = useState(false);
@@ -48,7 +50,7 @@ const SwitchProfileScreen = () => {
           setProfileChanged(prev => !prev);
            navigation.navigate('HomeScreen', { profile: { idclient, iduser, token } });
         } catch (error) {
-          Alert.alert('Error', 'Failed to login. Please check your credentials.');
+          Alert.alert(t('error'), t('login_error'));
           console.error('Login error:', error);
         }
     };
@@ -68,7 +70,7 @@ const SwitchProfileScreen = () => {
       </View>
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Switch Profile</Text>
+        <Text style={styles.headerTitle}>{t('switch_profile')}</Text>
       </View>
 
       <FlatList

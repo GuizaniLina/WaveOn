@@ -3,9 +3,11 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { ThemeContext } from '../../ThemeProvider';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, onPress, onSliderChange }) => {
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [sliderValue, setSliderValue] = useState(sliderValues?.initial || 0);
   const [isIncreasing, setIsIncreasing] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
@@ -63,7 +65,7 @@ const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, on
 
       <View style={styles.textContainer}>
         <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>{title}</Text>
-        <Text style={[styles.bodyinfo , {color : theme.$textColor}]}>Level: {`${sliderValue}%`} </Text>
+        <Text style={[styles.bodyinfo , {color : theme.$textColor}]}>{t('Level')}: {`${sliderValue}%`} </Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.stopButton} onPress={handleStopPress}>
             {isIncreasing ? (

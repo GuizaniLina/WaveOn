@@ -1,26 +1,28 @@
-import React ,{useContext}from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { ThemeContext } from '../ThemeProvider';
+import { useTranslation } from 'react-i18next'; // Import translation hook
 
 const CustomDrawerContent = (props) => {
   const navigation = useNavigation();
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation(); // Initialize translation function
 
   const confirmLogout = () => {
     Alert.alert(
-      'Confirm Logout',
-      'Are you sure you want to log out?',
+      t('confirm_logout'),
+      t('confirm_logout_message'),
       [
         {
-          text: 'Cancel',
+          text: t('cancel'),
           style: 'cancel',
         },
         {
-          text: 'Yes, Logout',
+          text: t('yes_logout'),
           onPress: handleLogout,
         },
       ],
@@ -39,7 +41,7 @@ const CustomDrawerContent = (props) => {
   };
 
   return (
-    <View style={[styles.container , {backgroundColor :theme.$backgroundColor}]}>
+    <View style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
       <View style={styles.drawerHeader}>
         <Image
           source={require('../../assets/logo.png')}
@@ -51,37 +53,33 @@ const CustomDrawerContent = (props) => {
 
       <TouchableOpacity onPress={() => navigation.navigate('Profil')} style={styles.item}>
         <Icon name="user" size={24} color={theme.$textColor} style={styles.itemIcon} />
-        <Text style={[styles.itemText, {color : theme.$textColor}]}>Profile</Text>
+        <Text style={[styles.itemText, { color: theme.$textColor }]}>{t('profile')}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.item}>
         <Icon name="cogs" size={24} color={theme.$textColor} style={styles.itemIcon} />
-        <Text style={[styles.itemText, {color : theme.$textColor}]}>Settings</Text>
+        <Text style={[styles.itemText, { color: theme.$textColor }]}>{t('settings')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity  style={styles.item}>
-        <Icon name="users" size={24} color={theme.$textColor} style={styles.itemIcon} />
-        <Text style={[styles.itemText, {color : theme.$textColor}]}>Manage Users</Text>
-      </TouchableOpacity>
-      <TouchableOpacity  style={styles.item}>
+      <TouchableOpacity style={styles.item}>
         <Icon name="wifi" size={24} color={theme.$textColor} style={styles.itemIcon} />
-        <Text style={[styles.itemText, {color : theme.$textColor}]}>Networks</Text>
+        <Text style={[styles.itemText, { color: theme.$textColor }]}>{t('networks')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.item}>
         <Icon name="shield" size={24} color={theme.$textColor} style={styles.itemIcon} />
-        <Text style={[styles.itemText, {color : theme.$textColor}]}>Proxy Filter</Text>
+        <Text style={[styles.itemText, { color: theme.$textColor }]}>{t('proxy_filter')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity  style={styles.item}>
+      <TouchableOpacity style={styles.item}>
         <Icon name="map" size={24} color={theme.$textColor} style={styles.itemIcon} />
-        <Text style={[styles.itemText, {color : theme.$textColor}]}>House Localisation</Text>
+        <Text style={[styles.itemText, { color: theme.$textColor }]}>{t('house_localisation')}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.switchProfileButton ,{ backgroundColor:theme.$standard}]} onPress={() => navigation.navigate('SwitchProfile')}>
+      <TouchableOpacity style={[styles.switchProfileButton, { backgroundColor: theme.$standard }]} onPress={() => navigation.navigate('SwitchProfile')}>
         <Icon name="exchange" size={24} color={theme.$textColor} style={styles.switchProfileIcon} />
-        <Text style={[styles.switchProfileText , {color : theme.$textColor}]}>Switch Profile</Text>
+        <Text style={[styles.switchProfileText, { color: theme.$textColor }]}>{t('switch_profile')}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.logoutButton,{ backgroundColor:theme.$standard}]} onPress={confirmLogout}>
+      <TouchableOpacity style={[styles.logoutButton, { backgroundColor: theme.$standard }]} onPress={confirmLogout}>
         <Icon name="power-off" size={24} color="#58c487" style={styles.switchProfileIcon} />
-        <Text style={styles.logoutText}>Logout</Text>
+        <Text style={styles.logoutText}>{t('logout')}</Text>
       </TouchableOpacity>
     </View>
   );

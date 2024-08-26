@@ -1,11 +1,13 @@
-import React, { useState, useEffect ,useContext} from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Switch, Alert } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../../ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 const Profil = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [isAdminChecked, setAdminChecked] = useState(false);
   const [isGatewayChecked, setGatewayChecked] = useState(false);
   const [isBluetoothChecked, setBluetoothChecked] = useState(true);
@@ -33,67 +35,64 @@ const Profil = ({ navigation }) => {
 
   const handleAdminToggle = () => {
     Alert.alert(
-      'Demande de confirmation',
-      'Vous devez envoyer un e-mail à l\'administrateur pour faire de vous un administrateur. Voulez-vous continuer ?',
+      t('confirmation_request'),
+      t('admin_request_message'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Envoyer', onPress: () => sendAdminRequestEmail() }
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('send'), onPress: () => sendAdminRequestEmail() }
       ]
     );
   };
 
   const handleGatewayToggle = () => {
     Alert.alert(
-      'Demande de confirmation',
-      'Vous devez envoyer un e-mail à l\'administrateur pour faire de vous une passerelle. Voulez-vous continuer ?',
+      t('confirmation_request'),
+      t('gateway_request_message'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Envoyer', onPress: () => sendGatewayRequestEmail() }
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('send'), onPress: () => sendGatewayRequestEmail() }
       ]
     );
   };
 
   const sendAdminRequestEmail = () => {
-    // Logic to send email request to the real administrator
     console.log('Admin request email sent');
   };
 
   const sendGatewayRequestEmail = () => {
-    // Logic to send email request to the real administrator
     console.log('Gateway request email sent');
   };
 
   if (!userInfo) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('loading')}</Text>
       </View>
     );
   }
 
   return (
-    
     <View style={[styles.container , { backgroundColor: theme.$backgroundColor }]}>
       <View style={styles.topBar}>
-      <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <FontAwesome5 name="arrow-left" size={24} color={theme.$iconColor} />
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <FontAwesome5 name="arrow-left" size={24} color={theme.$iconColor} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={''}>
           <Image source={require('../../../assets/icons/notification.png')} style={[styles.icon , {tintColor :theme.$iconColor}]} />
         </TouchableOpacity>
       </View>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profil</Text>
+        <Text style={styles.headerTitle}>{t('profile')}</Text>
       </View>
       <Text style={[styles.sectionTitle , { backgroundColor : theme.$standard  , color :theme.$textColor}]}>
-        <FontAwesome5 name="info-circle" size={16} color={theme.$textColor} /> Informations de compte
+        <FontAwesome5 name="info-circle" size={16} color={theme.$textColor} /> {t('account_info')}
       </Text>
       <View style={styles.section}>
         <View style={styles.row}>
-          <FontAwesome5 name="user" size={20} color= {theme.$textColor} />
+          <FontAwesome5 name="user" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
             <Text style={[styles.label ,{ color: theme.$textColor}]}>{userInfo.clientname}</Text>
             <Text style={[styles.info,{ color: theme.$textColor}]}>{userInfo.email}</Text>
@@ -102,36 +101,34 @@ const Profil = ({ navigation }) => {
         <View style={styles.row}>
           <FontAwesome5 name="server" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={[styles.label ,{ color: theme.$textColor}]}>Connexion au Serveur</Text>
-            <Text style={[styles.info,{ color: theme.$textColor}]}>Connecté</Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>{t('server_connection')}</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{t('connected')}</Text>
           </View>
         </View>
         <View style={styles.row}>
           <FontAwesome5 name="plug" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={[styles.label ,{ color: theme.$textColor}]}>État du Gateway</Text>
-            <Text style={[styles.info,{ color: theme.$textColor}]}>{userInfo.isgateway ? 'Connecté' : 'Déconnecté'}</Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>{t('gateway_status')}</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{userInfo.isgateway ? t('connected') : t('disconnected')}</Text>
           </View>
         </View>
         <View style={styles.row}>
           <FontAwesome5 name="clock" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={[styles.label ,{ color: theme.$textColor}]}>Dernière mise à jour du Réseau</Text>
-            <Text style={[styles.info,{ color: theme.$textColor}]}>{lastUpdate || 'N/A'}</Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>{t('last_network_update')}</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{lastUpdate || t('not_available')}</Text>
           </View>
         </View>
       </View>
       <Text style={[styles.sectionTitle , { backgroundColor : theme.$standard , color :theme.$textColor}]}>
-        <FontAwesome5 name="cogs" size={16} color={theme.$textColor} /> Configuration
+        <FontAwesome5 name="cogs" size={16} color={theme.$textColor} /> {t('configuration')}
       </Text>
       <View style={styles.section}>
         <View style={styles.row}>
           <FontAwesome5 name="user-shield" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={[styles.label ,{ color: theme.$textColor}]}>Administrateur</Text>
-            <Text style={[styles.info,{ color: theme.$textColor}]}>
-              L'activation de cette fonction fait de votre téléphone l'administrateur de votre réseau.
-            </Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>{t('admin')}</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{t('admin_description')}</Text>
           </View>
           <Switch
             value={isAdminChecked}
@@ -143,10 +140,8 @@ const Profil = ({ navigation }) => {
         <View style={styles.row}>
           <FontAwesome5 name="network-wired" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={[styles.label ,{ color: theme.$textColor}]}>Gateway</Text>
-            <Text style={[styles.info,{ color: theme.$textColor}]}>
-              L'activation de cette fonction fait de votre téléphone la passerelle vers le cloud.
-            </Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>{t('gateway')}</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{t('gateway_description')}</Text>
           </View>
           <Switch
             value={isGatewayChecked}
@@ -158,10 +153,8 @@ const Profil = ({ navigation }) => {
         <View style={styles.row}>
           <FontAwesome5 name="bluetooth" size={20} color={theme.$textColor} />
           <View style={styles.rowText}>
-            <Text style={[styles.label ,{ color: theme.$textColor}]}>Connexion Bluetooth automatique</Text>
-            <Text style={[styles.info,{ color: theme.$textColor}]}>
-              Activez cette fonctionnalité si vous souhaitez utiliser la connexion Bluetooth locale.
-            </Text>
+            <Text style={[styles.label ,{ color: theme.$textColor}]}>{t('bluetooth_auto')}</Text>
+            <Text style={[styles.info,{ color: theme.$textColor}]}>{t('bluetooth_auto_description')}</Text>
           </View>
           <Switch
             value={isBluetoothChecked}

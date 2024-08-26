@@ -5,21 +5,25 @@ import MultiSelect from 'react-native-multiple-select';
 import roomUpdateService from '../services/roomUpdateService';
 import Node from '../Class/Node';
 import { FontAwesome5 } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import ModalSelector from 'react-native-modal-selector';
 import uuid from 'react-native-uuid';
 import { ThemeContext } from '../ThemeProvider';
+import { useTranslation } from 'react-i18next';
+
 
 const RoomFormScreen = ({ navigation, route }) => {
     const { rooms, assignments } = route.params;
     const { theme} = useContext(ThemeContext);
+    const { t } = useTranslation();
   const [roomName, setRoomName] = useState(route.params?.roomName || '');
   const [selectedRoomName, setSelectedRoomName] = useState('');
   const [selectedDevices, setSelectedDevices] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [imageUri, setImageUri] = useState(null);
   const [step, setStep] = useState(1);
-  const [newRoomId, setNewRoomId] = useState( Math.floor(Date.now() / 1000));
+  const [idRoom, setNewRoomId] = useState( Math.floor(Date.now() / 1000));
 
   useEffect(() => {
     fetchDevices();
@@ -46,23 +50,30 @@ const RoomFormScreen = ({ navigation, route }) => {
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
-      alert("You've refused to allow this app to access your photos!");
+      alert(t('camera_permission'));
       return;
     }
+    
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
+  
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      const base64Image = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+  
+     
+      // Set the Image URI as base64
+      setImageUri(base64Image);
     }
   };
-
   const handleSaveRoom = async () => {
     if (selectedDevices.length === 0) {
-        Alert.alert('Error', 'Please select at least one device');
+        Alert.alert(t('error'), t('select_warning'));
         return;
       }
     try {
@@ -71,20 +82,19 @@ const RoomFormScreen = ({ navigation, route }) => {
       const idNetwork = 1;
       const token = await AsyncStorage.getItem('token');
 
-      const newRoom = [{
-        picture: imageUri || getDefaultImageForRoom(roomName),
-        idRoom: newRoomId,
+      const newRoom = {
+        picture: imageUri ,
+        idRoom,
         idNetwork,
         name: roomName,
-        mainSensorUnicast: 0,
+        mainSensorUnicast: 9,
         
-      }];
-
+      };
       const updatedRooms = [...rooms, newRoom];
-      const newRoomAssignments = generateAssignmentsForRoom(newRoomId, selectedDevices);
+      const newRoomAssignments = generateAssignmentsForRoom(idRoom, selectedDevices);
+      console.log('assignments',newRoomAssignments);
       const updatedAssignments = [...assignments, ...newRoomAssignments];
       console.log('updatedAssignments :',updatedAssignments);
-      console.log('Selected Devices:', selectedDevices); 
       await roomUpdateService(idclient, iduser,token, updatedRooms, updatedAssignments);
       navigation.goBack();
     } catch (error) {
@@ -93,9 +103,10 @@ const RoomFormScreen = ({ navigation, route }) => {
   };
 
   const generateAssignmentsForRoom = (idRoom, deviceIds) => {
+    console.log('idRoom : ',idRoom);
     return deviceIds.map(deviceId => {
       const device = nodes.find(node => node.deviceKey === deviceId);
-      if (device) {
+    
         return {
           unicast: device.unicastAddress,
           elementAdress: device.unicastAddress, // Assuming your Node class has this property
@@ -103,49 +114,49 @@ const RoomFormScreen = ({ navigation, route }) => {
           idRoom,
           deviceName: device.name,
           deviceType: device.pid, 
-        };
-      }
-      return null;
+        
+      };
+     
     }).filter(Boolean); // Filter out any null values in case a device is not found
   };
 
-  const handleRoomNameChange = (name) => {
-    setSelectedRoomName(name);
-    if (name === 'Personalize') {
+  const handleRoomNameChange = (option) => {
+    setSelectedRoomName(option.label);
+    if (option.key === 7) {
       setRoomName('');
     } else {
-      setRoomName(name);
-      setImageUri(getDefaultImageForRoom(name));
+      setRoomName(option.label);
+      setImageUri(getDefaultImageForRoom(option.key));
     }
   };
 
-  const getDefaultImageForRoom = (name) => {
-    switch (name) {
-      case 'Bedroom':
-        return require('../../assets/bedroom.jpg');
-      case 'Kitchen':
-        return require('../../assets/kitchen1.jpg');
-      case 'Bathroom':
-        return require('../../assets/bathroom.jpg');
-      case 'Garden':
-        return require('../../assets/garden.jpg');
-      case 'Kidsroom':
-        return require('../../assets/kidsroom.jpg');
-      case 'Livingroom':
-        return require('../../assets/livingroom1.jpg');
+  const getDefaultImageForRoom = (key) => {
+    switch (key) {
+      case 1:
+        return 'bedroom.jpg';
+      case 2:
+        return 'kitchen1.jpg';
+      case 3:
+        return 'bathroom.jpg';
+      case 4:
+        return 'garden.jpg';
+      case 5:
+        return 'kidsroom.jpg';
+      case 6:
+        return 'livingroom1.jpg';
       default:
         return null;
     }
   };
 
   const roomOptions = [
-    { key: 1, label: 'Bedroom' },
-    { key: 2, label: 'Kitchen' },
-    { key: 3, label: 'Bathroom' },
-    { key: 4, label: 'Garden' },
-    { key: 5, label: 'Kidsroom' },
-    { key: 6, label: 'Livingroom' },
-    { key: 7, label: 'Personalize' },
+    { key: 1, label: t('bedroom') },
+    { key: 2, label: t('kitchen') },
+    { key: 3, label: t('bathroom') },
+    { key: 4, label: t('garden') },
+    { key: 5, label: t('kidsroom') },
+    { key: 6, label: t('livingroom') },
+    { key: 7, label: t('personalize') },
   ];
 
   return (
@@ -163,7 +174,7 @@ const RoomFormScreen = ({ navigation, route }) => {
       </View>
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Add Room</Text>
+        <Text style={styles.headerTitle}>{t('add_room')}</Text>
       </View>
 
       <View style={[styles.formContainer,{backgroundColor :theme.$standard }]}>
@@ -172,11 +183,11 @@ const RoomFormScreen = ({ navigation, route }) => {
            
             <ModalSelector
               data={roomOptions}
-              initValue="Select a Room"
-              onChange={(option) => handleRoomNameChange(option.label)}
+              initValue={t('select_room')}
+              onChange={(option) => handleRoomNameChange(option)}
               style={styles.modalSelector}
               selectTextStyle={styles.modalSelectText}
-            ><Text style={[styles.label , {color  : theme.$textColor}]}>Select a Room</Text>
+            ><Text style={[styles.label , {color  : theme.$textColor}]}>{t('select_room')}</Text>
             <TextInput
             style={[styles.input, {backgroundColor :theme.$standard, borderColor : theme.$textColor, color :theme.$textColor}]}
             editable={false}
@@ -185,19 +196,19 @@ const RoomFormScreen = ({ navigation, route }) => {
           />
           </ModalSelector>
 
-            {selectedRoomName === 'Personalize' && (
+            {selectedRoomName === t('personalize') && (
               <> 
-              <Text style={[styles.label , {color  : theme.$textColor}]}>Room Name</Text>
+              <Text style={[styles.label , {color  : theme.$textColor}]}>{t('room_name')}</Text>
                 <TextInput
                   style={[styles.input, {backgroundColor :theme.$standard, borderColor : theme.$textColor, color :theme.$textColor}]}
-                  placeholder="Enter Custom Room Name"
+                  placeholder={t('enter_custom_room_name')}
                   value={roomName}
                   onChangeText={setRoomName}
                 />
                 <TouchableOpacity onPress={pickImage} style={styles.imagePickerButton}>
-                  <Text style={styles.imagePickerButtonText}>Choose Image</Text>
+                  <Text style={styles.imagePickerButtonText}>{t('choose_image')}</Text>
                 </TouchableOpacity>
-                {imageUri && <Image source={{ uri: imageUri }} style={styles.imagePreview} />}
+                {imageUri && <Image source={{ uri: `data:image/jpeg;base64,${imageUri}` }} style={styles.imagePreview} />}
               </>
             )}
 
@@ -206,36 +217,38 @@ const RoomFormScreen = ({ navigation, route }) => {
               onPress={() => setStep(2)}
               disabled={!roomName}
             >
-              <Text style={styles.nextButtonText}>Suivant</Text>
+              <Text style={styles.nextButtonText}>{t('next')}</Text>
             </TouchableOpacity>
           </>
         )}
 
         {step === 2 && (
           <>
-            <Text style={[styles.label , {color  : theme.$textColor}]}>Devices</Text>
+            <Text style={[styles.label , {color  : theme.$textColor}]}>{t('devices')}</Text>
             <MultiSelect
-              items={nodes.map(device => ({ deviceKey: device.deviceKey, deviceName: device.name }))}
-              uniqueKey="deviceKey"
-              onSelectedItemsChange={setSelectedDevices}
-              selectedItems={selectedDevices}
-              selectText="Select Devices"
-              searchInputPlaceholderText="Search Devices..."
-              displayKey="deviceName"
-              styleSelectorContainer={styles.multiSelectSelector}
-              styleDropdownMenuSubsection={styles.multiSelectDropdown}
-              styleTextDropdown={styles.multiSelectTextDropdown}
-              styleTextTag={styles.multiSelectTextTag}
-              styleInputGroup={styles.multiSelectInput}
-              submitButtonText="Submit"
-            />
+  items={nodes
+    .filter(device => [2, 3, 7, 8].includes(device.pid)) // Filter to include only devices with pid 2, 3, 7, or 8
+    .map(device => ({ deviceKey: device.deviceKey, deviceName: device.name }))}
+  uniqueKey="deviceKey"
+  onSelectedItemsChange={setSelectedDevices}
+  selectedItems={selectedDevices}
+  selectText={t('select_devices')}
+  searchInputPlaceholderText={t('search_devices')}
+  displayKey="deviceName"
+  styleSelectorContainer={styles.multiSelectSelector}
+  styleDropdownMenuSubsection={styles.multiSelectDropdown}
+  styleTextDropdown={styles.multiSelectTextDropdown}
+  styleTextTag={styles.multiSelectTextTag}
+  styleInputGroup={styles.multiSelectInput}
+  submitButtonText={t('submit')}
+/>
 
             <View style={styles.navigationButtons}>
               <TouchableOpacity
                 style={[styles.prevButton, { backgroundColor: 'rgba(112, 160, 214, 1)' }]}
                 onPress={() => setStep(1)}
               >
-                <Text style={styles.prevButtonText}>Precedent</Text>
+                <Text style={styles.prevButtonText}>{t('previous')}</Text>
               </TouchableOpacity>
 
              
@@ -249,7 +262,7 @@ const RoomFormScreen = ({ navigation, route }) => {
                 onPress={handleSaveRoom}
                 disabled={!selectedDevices.length}
               >
-                <Text style={styles.addButtonText}>ADD</Text>
+                <Text style={styles.addButtonText}>{t('add')}</Text>
               </TouchableOpacity>
     </View>
   );

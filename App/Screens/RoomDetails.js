@@ -8,6 +8,7 @@ import { connectMQTT, toggleDeviceState, disconnectMQTT, publishMQTT } from '../
 import Node from '../Class/Node';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 const deviceComponents = {
   2: LampsContainer,
@@ -18,6 +19,7 @@ const deviceComponents = {
 const RoomDetails = ({ route }) => {
   const { roomId, roomName, roomImage, assignments } = route.params;
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
   const [deviceStates, setDeviceStates] = useState(
@@ -76,13 +78,13 @@ const RoomDetails = ({ route }) => {
     connectMQTT(setIsConnected, updateDevices)
       .catch(error => {
         console.error('MQTT connection error:', error);
-        Alert.alert('Error', 'Error connecting to MQTT broker');
+        Alert.alert(t('error'), t('error_connecting_mqtt'));
       });
 
     return () => {
       disconnectMQTT();
     };
-  }, [assignments, roomId]);
+  }, [assignments, roomId , t]);
 
   useEffect(() => {
     const devicesInRoom = assignments.filter(assignment => assignment.idRoom === roomId);
@@ -161,11 +163,11 @@ const RoomDetails = ({ route }) => {
     setModalVisible(false);
     // Perform delete action (e.g., show confirmation alert)
     Alert.alert(
-      'Delete Room',
-      'Are you sure you want to delete this room?',
+      t('delete_room'),
+      t('delete_room_confirmation'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', onPress: () => console.log('Delete option selected') },
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('delete'), onPress: () => console.log('Delete option selected') },
       ]
     );
   };
@@ -179,7 +181,7 @@ const RoomDetails = ({ route }) => {
   };
 
   return (
-    <ImageBackground source={{ uri: roomImage }} style={styles.background} blurRadius={4}>
+    <ImageBackground source={roomImage} style={styles.background} blurRadius={1}>
       <View style={styles.container}>
       <View style={[styles.header, { backgroundColor: theme.$backgroundColor }]}>
   <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -200,13 +202,13 @@ const RoomDetails = ({ route }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <TouchableOpacity style={styles.modalOption} onPress={handleModify}>
-              <Text style={styles.modalOptionText}>Modify</Text>
+              <Text style={styles.modalOptionText}>{t('modify')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalOption} onPress={handleDelete}>
-              <Text style={styles.modalOptionText}>Delete</Text>
+              <Text style={styles.modalOptionText}>{t('delete')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalCancel} onPress={() => setModalVisible(false)}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text style={styles.modalCancelText}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -220,11 +222,11 @@ const RoomDetails = ({ route }) => {
           </View>
           <View>
             <View style={styles.infoContainer}>
-              <Text style={styles.temperatureLabel}>Humidity :</Text>
+              <Text style={styles.temperatureLabel}>{t('humidity_label')} : </Text>
               <Text style={styles.value}>{humidity} %</Text>
             </View>
             <View style={styles.infoContainer}>
-              <Text style={styles.temperatureLabel}>Luminosity :</Text>
+              <Text style={styles.temperatureLabel}>{t('luminosity_label')} :</Text>
               <Text style={styles.value}>{luminosity} %</Text>
             </View>
             <View style={styles.infoContainer}>
@@ -247,7 +249,7 @@ const RoomDetails = ({ route }) => {
         <View style={styles.controlContainer}>
           <View style={[styles.twoContainer, !hasClimatiseur && styles.disabledContainer]}>
             <Image source={require('../../assets/icons/clima.png')} style={styles.icon} />
-            <Text style={styles.twoDeviceName}>Climatiseur</Text>
+            <Text style={styles.twoDeviceName}>{t('climatiseur')}</Text>
             <Switch
               value={deviceStates['Climatiseur']}
               onValueChange={() => toggleDevice('Climatiseur')}
@@ -258,7 +260,7 @@ const RoomDetails = ({ route }) => {
           </View>
           <View style={[styles.twoContainer, !hasPorte && styles.disabledContainer]}>
             <Image source={require('../../assets/icons/garage1.png')} style={styles.icon} />
-            <Text style={styles.twoDeviceName}>Porte</Text>
+            <Text style={styles.twoDeviceName}>{t('porte')}</Text>
             <Switch
               value={deviceStates['Porte']}
               onValueChange={() => toggleDevice('Porte')}

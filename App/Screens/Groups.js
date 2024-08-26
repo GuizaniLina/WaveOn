@@ -1,14 +1,15 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { ThemeContext } from '../ThemeProvider';
+import { useTranslation } from 'react-i18next';
 
 const Groups = () => {
-  const { theme} = useContext(ThemeContext);
+  const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation(); // Hook for translation
+
   return (
-    <SafeAreaView style={[styles.container , {backgroundColor: theme.$backgroundColor}]}>
-     
-     
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
       <View style={styles.content}>
         <LottieView
           source={require('../../assets/lottiefile/nodata.json')}
@@ -16,9 +17,11 @@ const Groups = () => {
           loop
           style={styles.lottie}
         />
-        <Text style={[styles.noDataText , {color : theme.$textColor}]}>AUCUN GROUPE CONFIGURÉ</Text>
-        <Text style={[styles.noDataDescription ,{color:theme.$textColor}]}>
-          Créez un groupe pour contrôler vos équipements. Tous les groupes montrés ici peuvent être abonnés à partir du menu configuration de dispositif.
+        <Text style={[styles.noDataText, { color: theme.$textColor }]}>
+          {t('no_group_configured')}
+        </Text>
+        <Text style={[styles.noDataDescription, { color: theme.$textColor }]}>
+          {t('create_group_description')}
         </Text>
       </View>
       {/* Animation Lottie pour l'ajout */}
@@ -29,8 +32,7 @@ const Groups = () => {
           loop
           style={styles.lottieAdd}
         />
-        </View>
-     
+      </View>
     </SafeAreaView>
   );
 };
@@ -40,9 +42,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#333',
   },
- 
- 
- 
   content: {
     flex: 1,
     alignItems: 'center',
@@ -66,18 +65,14 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 18,
-    color: 'white',
     marginTop: 20,
     fontWeight: 'bold',
   },
   noDataDescription: {
     fontSize: 14,
-    color: 'white',
     textAlign: 'center',
     marginTop: 10,
   },
-  
- 
 });
 
 export default Groups;

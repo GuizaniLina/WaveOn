@@ -5,10 +5,12 @@ import Slider from '@react-native-community/slider';
 import { ThemeContext } from '../ThemeProvider';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 export default function BlindsControlScreen({ route, navigation }) {
   const { node } = route.params;
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const [blindPosition, setBlindPosition] = useState(node.getElementStates()[0] || 0);
   const [isStopEnabled, setIsStopEnabled] = useState(false);
   const [isUpEnabled, setIsUpEnabled] = useState(true);
@@ -88,12 +90,12 @@ export default function BlindsControlScreen({ route, navigation }) {
       </LinearGradient>
 
       <View style={[styles.formContainer, { backgroundColor: theme.$standard }]}>
-        <Text style={[styles.title, { color: theme.$textColor }]}>Control Blinds</Text>
+        <Text style={[styles.title, { color: theme.$textColor }]}>{t('control_blinds')}</Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-          Unicast Address: {node.unicastAddress}
+        {t('unicast_address')}: {node.unicastAddress}
         </Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-          Element Address: {node.getElementAddresses()[0]}
+        {t('element_address')}: {node.getElementAddresses()[0]}
         </Text>
         <Slider
           style={styles.slider}
@@ -106,7 +108,7 @@ export default function BlindsControlScreen({ route, navigation }) {
           thumbTintColor={theme.$primaryColor}
           onValueChange={handleBlindChange}
         />
-        <Text style={[styles.value, { color: theme.$textColor }]}>Position: {blindPosition}%</Text>
+        <Text style={[styles.value, { color: theme.$textColor }]}>{t('position')}: {blindPosition}%</Text>
 
         <View style={styles.buttonRow}>
           <TouchableOpacity
@@ -121,7 +123,7 @@ export default function BlindsControlScreen({ route, navigation }) {
             onPress={handleStopPress}
             disabled={!isStopEnabled}
           >
-            <Text style={styles.stopText}>Stop</Text>
+            <Text style={styles.stopText}>{t('stop')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.controlButton, { backgroundColor: isDownEnabled ? 'rgba(112, 160, 214, 1)' : '#cccccc' }]}
