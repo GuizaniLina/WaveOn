@@ -31,7 +31,7 @@ const roomGetService = async (idclient, iduser, idNetwork, token) => {
         if (response.data && response.data.rooms && response.data.assignments) {
             await AsyncStorage.setItem('rooms', JSON.stringify(response.data.rooms));
             await AsyncStorage.setItem('assignments', JSON.stringify(response.data.assignments));
-            await AsyncStorage.setItem(`roomslastUpdate_${idclient}`, JSON.stringify(response.data.roomsLastUpdate));
+            await AsyncStorage.setItem(`roomslastUpdate_${idclient}`, response.data.roomsLastUpdate.toString());
             console.log('Données des salles stockées avec succès');
         } else {
             console.error('Réponse invalide du service');

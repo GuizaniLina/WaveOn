@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, ImageBackground, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Keyboard, TouchableWithoutFeedback, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation ,CommonActions } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next'; // Import the useTranslation hook
 import LoginService from '../../services/LoginService';
@@ -21,18 +21,25 @@ const LoginScreen = () => {
       const { idclient, iduser, token } = response;
       await AsyncStorage.setItem(`password_${idclient}`, password);
       await downloadFile(idclient, iduser, token); // Download file on login
-
+  
       // Start periodic ping
       startPeriodicPing(idclient, iduser, token);
-
-      // Handle successful login
-      console.log('Login successful. response:', response);
-      navigation.navigate('HomeScreen');
+  
+      // Store the token in AsyncStorage
+      await AsyncStorage.setItem('token', token);
+  
+      // Handle successful login - reset navigation stack
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'HomeScreen' }],
+        })
+      );
     } catch (error) {
       Alert.alert(t('error'), t('login_failed'));
       console.error('Login error:', error);
     }
-
+  
     // Dismiss keyboard after login attempt
     Keyboard.dismiss();
   };

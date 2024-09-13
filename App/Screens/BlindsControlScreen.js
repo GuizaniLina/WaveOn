@@ -49,7 +49,7 @@ export default function BlindsControlScreen({ route, navigation }) {
 
   const incrementBlindPosition = (direction) => {
     const id = setInterval(() => {
-      setBlindPosition(prevPosition => {
+      setBlindPosition((prevPosition) => {
         let newPosition = prevPosition + direction * 5; // Change the increment/decrement value here
         if (newPosition > 100) newPosition = 100;
         if (newPosition < 0) newPosition = 0;
@@ -68,6 +68,27 @@ export default function BlindsControlScreen({ route, navigation }) {
     };
   }, [intervalId]);
 
+  const renderBlinds = (position) => {
+    const numSlats = Math.round((position / 100) * 10); // Number of slats based on position
+    const slats = [];
+
+    for (let i = 0; i < numSlats; i++) {
+      slats.push(
+        <View
+          key={i}
+          style={[
+            styles.blindSlat,
+            {
+              backgroundColor: `rgba(112, 160, 214, ${0.7 + (i * 0.03)})`, // Dynamic opacity based on slat index
+            },
+          ]}
+        />
+      );
+    }
+
+    return slats;
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
       <View style={styles.topBar}>
@@ -78,7 +99,7 @@ export default function BlindsControlScreen({ route, navigation }) {
           <FontAwesome5 name="arrow-left" size={24} color={theme.$iconColor} />
         </TouchableOpacity>
         <TouchableOpacity onPress={''}>
-          <Image source={require('../../assets/icons/notification.png')} style={[styles.icon ,{ tintColor : theme.$iconColor}]} />
+          <Image source={require('../../assets/icons/notification.png')} style={[styles.icon, { tintColor: theme.$iconColor }]} />
         </TouchableOpacity>
       </View>
 
@@ -92,10 +113,10 @@ export default function BlindsControlScreen({ route, navigation }) {
       <View style={[styles.formContainer, { backgroundColor: theme.$standard }]}>
         <Text style={[styles.title, { color: theme.$textColor }]}>{t('control_blinds')}</Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-        {t('unicast_address')}: {node.unicastAddress}
+          {t('unicast_address')}: {node.unicastAddress}
         </Text>
         <Text style={[styles.infoText, { color: theme.$textColor }]}>
-        {t('element_address')}: {node.getElementAddresses()[0]}
+          {t('element_address')}: {node.getElementAddresses()[0]}
         </Text>
         <Slider
           style={styles.slider}
@@ -133,6 +154,12 @@ export default function BlindsControlScreen({ route, navigation }) {
             <FontAwesome5 name="arrow-down" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Visual representation of the blinds */}
+      <View style={styles.blindContainer}>
+        <View style={[styles.blindBase , {backgroundColor : theme.$textColor}]} />
+        {renderBlinds(blindPosition)}
       </View>
     </View>
   );
@@ -212,5 +239,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFF',
     fontWeight: 'bold',
+  },
+  blindContainer: {
+   // flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    marginHorizontal: 16,
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
+  blindBase: {
+    width: '80%',
+    height: 20,
+    // Thick base representing the top of the blinds
+    marginBottom: 5,
+    borderRadius : 10
+  },
+  blindSlat: {
+    width: '60%',
+    height: 10,
+    marginVertical: 2,
+    backgroundColor: 'rgba(112, 160, 214, 0.7)', // Fine rectangles representing the slats
   },
 });

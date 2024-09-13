@@ -1,5 +1,5 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, Text, View, Modal, RefreshControl, ScrollView } from 'react-native';
+import React, { useState, useContext, useEffect } from 'react';
+import { Alert, StyleSheet, TouchableOpacity,Image, Text, View, Modal, RefreshControl, ScrollView, TextInput } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import DeviceContainer from './components/DeviceContainer';
 import TwoLampsContainer from './components/TwoLampsContainer';
@@ -8,10 +8,11 @@ import SwitchContainer from './components/SwitchContainer';
 import Node from '../Class/Node';
 import { connectMQTT, toggleDeviceState, publishMQTT, disconnectMQTT } from '../services/mqttService';
 import LottieView from 'lottie-react-native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import * as Permissions from 'expo-permissions';
 import { ThemeContext } from '../ThemeProvider';
 import { useTranslation } from 'react-i18next';
+import  Camera  from 'expo-camera';
+import { BarCodeScanner } from 'expo-barcode-scanner';
+import { SwipeListView } from 'react-native-swipe-list-view';
 
 export default function Devices({ navigation }) {
   const { theme } = useContext(ThemeContext);
@@ -21,7 +22,9 @@ export default function Devices({ navigation }) {
   const [isScannerVisible, setIsScannerVisible] = useState(false);
   const [hasPermission, setHasPermission] = useState(null);
   const [refreshing, setRefreshing] = useState(false); 
-
+  const [isNameInputVisible, setIsNameInputVisible] = useState(false);
+  const [newDeviceName, setNewDeviceName] = useState('');
+  const [scannedData, setScannedData] = useState(null);
 
   const fetchNodes = async () => {
     try {
@@ -58,7 +61,6 @@ export default function Devices({ navigation }) {
         prevNodes.map(node => {
           const updatedDevice = updatedDevices.find(dev => dev.unicastAddress === node.unicastAddress);
           if (updatedDevice) {
-            //console.log('updateee',updatedDevice);
             node.updateFromDevice(updatedDevice);
           }
           return node;
@@ -83,7 +85,6 @@ export default function Devices({ navigation }) {
       setHasPermission(status === 'granted');
     })();
   }, []);
-
   const handleDragEnd = async ({ data }) => {
     setNodes(data);
     try {
@@ -106,19 +107,67 @@ export default function Devices({ navigation }) {
   };
 
   const handleQRCodeRead = async ({ data }) => {
+    setScannedData(data); // Save the scanned data temporarily
+    setIsScannerVisible(false); // Hide the scanner
+    setIsNameInputVisible(true); // Show the input for the device name
+  };
+
+  const handleNameSubmit = async () => {
+    if (!newDeviceName.trim()) {
+      Alert.alert(t('error'), t('enter_device_name'));
+      return;
+    }
     try {
-      const newDeviceData = JSON.parse(data); // Assuming QR code contains JSON data
+      const newDeviceData = JSON.parse(scannedData); // Assuming QR code contains JSON data
       const newDevice = new Node(newDeviceData);
+      newDevice.name = newDeviceName; // Set the name from the input field
+
       setNodes((prevNodes) => [...prevNodes, newDevice]);
 
       const USER_ID = await AsyncStorage.getItem('idclient');
       await AsyncStorage.setItem(`nodes_${USER_ID}`, JSON.stringify([...nodes, newDevice]));
-      setIsScannerVisible(false);
+      
+      setIsNameInputVisible(false);
+      setNewDeviceName('');
+      setScannedData(null);
     } catch (error) {
       console.error('Error adding new device from QR code:', error);
       Alert.alert(t('error'), t('invalid_qr_code'));
-      setIsScannerVisible(false);
+      setIsNameInputVisible(false);
+      setNewDeviceName('');
+      setScannedData(null);
     }
+  };
+
+  const handleDeleteDevice = async (deviceKey) => {
+    Alert.alert(
+      t('confirm_delete'),
+      t('confirm_delete_message'),
+      [
+        {
+          text: t('cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('delete'),
+          onPress: async () => {
+            try {
+              const updatedNodes = nodes.filter(node => node.deviceKey !== deviceKey);
+              setNodes(updatedNodes);
+
+              const USER_ID = await AsyncStorage.getItem('idclient');
+              await AsyncStorage.setItem(`nodes_${USER_ID}`, JSON.stringify(updatedNodes));
+              Alert.alert(t('success'), t('device_deleted'));
+            } catch (error) {
+              console.error('Error deleting device:', error);
+              Alert.alert(t('error'), t('device_delete_failed'));
+            }
+          },
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const renderItem = ({ item: node, drag }) => {
@@ -126,7 +175,7 @@ export default function Devices({ navigation }) {
       onLongPress: drag,
       key: node.deviceKey,
       title: node.name,
-      onSliderChange: (value) => publishMQTT(node.unicastAddress, node.getElementAddresses()[0], value,'BlindsLevel'),
+      onSliderChange: (value) => publishMQTT(node.unicastAddress, node.getElementAddresses()[0], value, 'BlindsLevel'),
     };
 
     const handlePressLamp1 = () => {
@@ -140,157 +189,186 @@ export default function Devices({ navigation }) {
       navigation.navigate('TwoLampsControl', { node });
     };
 
-    
-
-    switch (node.pid) {
-      case 0:
-        return (
-          <DeviceContainer
-            {...commonProps}
-            icon={require('../../assets/icons/lampe1.png')}
-            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
-            onPress={() => navigation.navigate('BlindsControl', { node })}
-            infoIcons={[
-              { icon: require('../../assets/icons/chrono.png'), color: 'rgba(74, 207, 244, 1)', value: node.getChrono() + ' s' },
-              { icon: require('../../assets/icons/eclat.png'), color: 'yellow', value: node.getEclat() + ' %' },
-            ]}
-          />
-        );
-      case 1:
-        return (
-          <DeviceContainer
-            {...commonProps}
-            icon={require('../../assets/icons/remote_light.png')}
-            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
-            onPress={() => navigation.navigate('BlindsControl', { node })}
-            infoIcons={[
-              { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
-            ]}
-          />
-        );
-      case 2:
-        return (
-          <TwoLampsContainer
-            {...commonProps}
-            onPressLamp1={handlePressLamp1}
-            onPressLamp2={handlePressLamp2}
-            onPress={handleNavigateToControl}
-            icon1={require('../../assets/icons/lampe_dark.png')}
-            icon2={require('../../assets/icons/lampe_dark.png')}
-            level_A={(node.getElementStates()[0]) != null ? (node.getElementStates()[0] + ' %') : '--'}
-            level_B={(node.getElementStates()[1]) != null ? (node.getElementStates()[1] + ' %') : '--'}
-            infoIcons={[
-              {
-                icon: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? require('../../assets/icons/no_one.png') : require('../../assets/icons/man.png'),
-                color: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? 'rgba(74, 207, 244, 1)' : 'rgba(240, 69, 32, 1)',
-                value: node.getOccupancy() + ' s',
-              },
-              { icon: require('../../assets/icons/temperatures.png'), color: 'rgba(240, 69, 32, 1)', value: node.getTemperature() + ' °C' },
-              { icon: require('../../assets/icons/humidite.png'), color: 'rgba(41, 43, 234, 1)', value: node.getHumidity() + ' %' },
-              { icon: require('../../assets/icons/luminosite.png'), color: 'rgba(244, 231, 74, 1)', value: node.getLuminosity() + ' %' },
-            ]}
-          />
-        );
-      case 3:
-        return (
-          <DeviceContainer
-            {...commonProps}
-            icon={require('../../assets/icons/volet.png')}
-            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
-            onPress={() => navigation.navigate('BlindsControl', { node })}
-            infoIcons={[
-              {
-                icon: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? require('../../assets/icons/no_one.png') : require('../../assets/icons/man.png'),
-                color: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? 'rgba(74, 207, 244, 1)' : 'rgba(240, 69, 32, 1)',
-                value: node.getOccupancy() + ' s',
-              },
-              { icon: require('../../assets/icons/temperatures.png'), color: 'rgba(240, 69, 32, 1)', value: node.getTemperature() + ' °C' },
-              { icon: require('../../assets/icons/humidite.png'), color: 'rgba(41, 43, 234, 1)', value: node.getHumidity() + ' %' },
-              { icon: require('../../assets/icons/luminosite.png'), color: 'rgba(244, 231, 74, 1)', value: node.getLuminosity() + ' %' },
-            ]}
-          />
-        );
-      case 4:
-        return (
-          <DeviceContainer
-            {...commonProps}
-            icon={require('../../assets/icons/antenne.png')}
-            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
-            onPress={() => navigation.navigate('BlindsControl', { node })}
-            infoIcons={[
-              { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
-            ]}
-          />
-        );
-      case 5:
-        return (
-          <TwoLampsContainer
-            {...commonProps}
-            onPressLamp1={handlePressLamp1}
-            onPressLamp2={handlePressLamp2}
-            icon1={require('../../assets/icons/lampe_dark.png')}
-            icon2={require('../../assets/icons/lampe_dark.png')}
-            onPress={handleNavigateToControl}
-            level_A={(node.getElementStates()[0]) ? (node.getElementStates()[0] + ' %') : '--'}
-            level_B={(node.getElementStates()[1]) ? (node.getElementStates()[1] + ' %') : '--'}
-            infoIcons={[
-              { icon: require('../../assets/icons/chrono.png'), color: 'rgba(74, 207, 244, 1)', value: node.getChrono() + ' s' },
-              { icon: require('../../assets/icons/eclat.png'), color: 'yellow', value: node.getEclat() + ' %' },
-            ]}
-          />
-        );
-      case 6:
-        return (
-          <DeviceContainer
-            {...commonProps}
-            icon={require('../../assets/icons/garage.png')}
-            sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
-            onPress={() => navigation.navigate('BlindsControl', { node })}
-            infoIcons={[
-              { icon: require('../../assets/icons/eclat.png'), color: 'yellow', value: node.getEclat() + ' %' },
-            ]}
-          />
-        );
-      case 7:
-        return (
-          <SwitchContainer
-            {...commonProps}
-            icon={require('../../assets/icons/clima.png')}
-            infoIcons={[
-              { icon: require('../../assets/icons/eclat.png'), color: 'yellow', value: node.getEclat() + ' %' },
-            ]}
-          />
-        );
-      case 8:
-        return (
-          <SwitchContainer
-            {...commonProps}
-            icon={require('../../assets/icons/garage1.png')}
-            infoIcons={[
-              { icon: require('../../assets/icons/chrono.png'), color: 'rgba(74, 207, 244, 1)', value: node.getChrono() + ' s' },
-            ]}
-          />
-        );
-      case 9:
-        return (
-          <SwitchContainer
-            {...commonProps}
-            icon={require('../../assets/icons/default.png')}
-            infoIcons={[
-              { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
-            ]}
-          />
-        );
-      default:
-        return null;
-    }
+    const handleSwitchToggle = () => {
+      toggleDeviceState(node, 0);
   };
+ 
+
+
+switch (node.pid) {
+  case 0:
+    return (
+      <DeviceContainer
+        {...commonProps}
+        icon={require('../../assets/icons/lampe1.png')}
+        sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+        onPress={() => navigation.navigate('BlindsControl', { node })}
+        infoIcons={[
+          { icon: require('../../assets/icons/chrono.png'), color: 'rgba(74, 207, 244, 1)', value: node.getChrono() + ' s' },
+          { icon: require('../../assets/icons/eclat.png'), color: 'rgba(251, 216, 92,1)', value: node.getEclat() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 1:
+    return (
+      <DeviceContainer
+        {...commonProps}
+        icon={require('../../assets/icons/remote_light.png')}
+        sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+        onPress={() => navigation.navigate('BlindsControl', { node })}
+        infoIcons={[
+          { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 2:
+    return (
+      <TwoLampsContainer
+        {...commonProps}
+        onPressLamp1={handlePressLamp1}
+        onPressLamp2={handlePressLamp2}
+        onPress={handleNavigateToControl}
+        icon1={require('../../assets/icons/lampe_dark.png')}
+        icon2={require('../../assets/icons/lampe_dark.png')}
+        level_A={(node.getElementStates()[0]) != null ? (node.getElementStates()[0] + ' %') : '--'}
+        level_B={(node.getElementStates()[1]) != null ? (node.getElementStates()[1] + ' %') : '--'}
+        infoIcons={[
+          {
+            icon: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? require('../../assets/icons/no_one.png') : require('../../assets/icons/man.png'),
+            color: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? 'white' : 'rgba(240, 69, 32, 1)',
+            value: node.getOccupancy() + ' s',
+          },
+          { icon: require('../../assets/icons/temperatures.png'), color: 'rgba(240, 69, 32, 1)', value: node.getTemperature() + ' °C' },
+          { icon: require('../../assets/icons/humidite.png'), color: 'rgba(74, 207, 244, 1)', value: node.getHumidity() + ' %' },
+          { icon: require('../../assets/icons/luminosite.png'), color: 'rgba(251, 216, 92,1)', value: node.getLuminosity() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 3:
+    return (
+      <DeviceContainer
+        {...commonProps}
+        icon={require('../../assets/icons/volet.png')}
+        sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+        onPress={() => navigation.navigate('BlindsControl', { node })}
+        infoIcons={[
+          {
+            icon: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? require('../../assets/icons/no_one.png') : require('../../assets/icons/man.png'),
+            color: node.getOccupancy() === 0 || node.getOccupancy() === '--' ? 'white' : 'rgba(240, 69, 32, 1)',
+            value: node.getOccupancy() + ' s',
+          },
+          { icon: require('../../assets/icons/temperatures.png'), color: 'rgba(240, 69, 32, 1)', value: node.getTemperature() + ' °C' },
+          { icon: require('../../assets/icons/humidite.png'), color: 'rgba(74, 207, 244, 1)', value: node.getHumidity() + ' %' },
+          { icon: require('../../assets/icons/luminosite.png'), color: 'rgba(251, 216, 92,1)', value: node.getLuminosity() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 4:
+    return (
+      <DeviceContainer
+        {...commonProps}
+        icon={require('../../assets/icons/antenne.png')}
+        sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+        onPress={() => navigation.navigate('BlindsControl', { node })}
+        infoIcons={[
+          { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 5:
+    return (
+      <TwoLampsContainer
+        {...commonProps}
+        onPressLamp1={handlePressLamp1}
+        onPressLamp2={handlePressLamp2}
+        icon1={require('../../assets/icons/lampe_dark.png')}
+        icon2={require('../../assets/icons/lampe_dark.png')}
+        onPress={handleNavigateToControl}
+        level_A={(node.getElementStates()[0]) ? (node.getElementStates()[0] + ' %') : '--'}
+        level_B={(node.getElementStates()[1]) ? (node.getElementStates()[1] + ' %') : '--'}
+        infoIcons={[
+          { icon: require('../../assets/icons/chrono.png'), color: 'rgba(74, 207, 244, 1)', value: node.getChrono() + ' s' },
+          { icon: require('../../assets/icons/eclat.png'), color:'rgba(251, 216, 92,1)', value: node.getEclat() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 6:
+    return (
+      <DeviceContainer
+        {...commonProps}
+        icon={require('../../assets/icons/garage.png')}
+        sliderValues={{ min: 0, max: 100, initial: node.getElementStates()[0] || 0 }}
+        onPress={() => navigation.navigate('BlindsControl', { node })}
+        infoIcons={[
+          { icon: require('../../assets/icons/eclat.png'), color: 'rgba(251, 216, 92,1)', value: node.getEclat() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 7:
+    return (
+      <SwitchContainer
+        {...commonProps}
+        switchState={(node.getElementStates()[0] > 0) } 
+        onSwitchToggle={handleSwitchToggle} 
+        icon={require('../../assets/icons/clima.png')}
+        infoIcons={[
+          { icon: require('../../assets/icons/eclat.png'), color: 'rgba(251, 216, 92,1)', value: node.getEclat() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 8:
+    return (
+      <SwitchContainer
+        {...commonProps}
+        switchState={(node.getElementStates()[0] > 0) } 
+        onSwitchToggle={handleSwitchToggle} 
+        icon={require('../../assets/icons/garage1.png')}
+        infoIcons={[
+          { icon: require('../../assets/icons/chrono.png'), color: 'rgba(74, 207, 244, 1)', value: node.getChrono() + ' s' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  case 9:
+    return (
+      <SwitchContainer
+        {...commonProps}
+        switchState={(node.getElementStates()[0] > 0) } 
+        onSwitchToggle={handleSwitchToggle} 
+        icon={require('../../assets/icons/default.png')}
+        infoIcons={[
+          { icon: require('../../assets/icons/batterie.png'), color: 'green', value: node.getBatterie() + ' %' },
+        ]}
+        onDelete={() => handleDeleteDevice(node.deviceKey)}
+      />
+    );
+  default:
+    return null;
+}
+};
 
   return (
-    <View style={[styles.container , {backgroundColor :theme.$backgroundColor}]}>
-      <Text style={[styles.title ,{color : theme.$textColor}]}>{t('devices_list_title')}</Text>
-      <Text style={[styles.status , {color : theme.$textColor}]}>
-      {isConnected ? t('mqtt_connected') : t('mqtt_connecting')}
+    <View style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
+       <View style={styles.header}>
+        <Text style={[styles.title, { color: theme.$textColor }]}>{t('devices_list_title')}</Text>
+        {/* Add a refresh icon next to the title */}
+        <TouchableOpacity onPress={onRefresh}>
+          <Image
+            source={require('../../assets/icons/refresh.png')}
+            style={styles.refreshIcon}
+          />
+        </TouchableOpacity>
+      </View>
+      <Text style={[styles.status, { color: theme.$textColor }]}>
+        {isConnected ? t('mqtt_connected') : t('mqtt_connecting')}
       </Text>
       {nodes ?
         <DraggableFlatList
@@ -339,6 +417,22 @@ export default function Devices({ navigation }) {
           </TouchableOpacity>
         </View>
       </Modal>
+
+      <Modal visible={isNameInputVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.nameInputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder={t('enter_device_name')}
+              value={newDeviceName}
+              onChangeText={setNewDeviceName}
+            />
+            <TouchableOpacity style={styles.submitButton} onPress={handleNameSubmit}>
+              <Text style={styles.submitButtonText}>{t('add')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -348,7 +442,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 2,
     backgroundColor: '#333',
-    paddingBottom: 60
+    paddingBottom: 60,
   },
   title: {
     fontSize: 24,
@@ -359,6 +453,17 @@ const styles = StyleSheet.create({
   scrollViewContainer: {
     flexGrow: 1,
     padding: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Ensures the title and icon are on opposite sides
+    alignItems: 'center', // Aligns title and icon vertically
+    paddingHorizontal: 16,
+  },
+  refreshIcon: {
+    width: 25,
+    height: 25,
+   
   },
   loaderContainer: {
     position: 'absolute',
@@ -377,22 +482,11 @@ const styles = StyleSheet.create({
   status: {
     textAlign: 'center',
     color: 'white',
-    marginRight: 10
+    marginRight: 10,
   },
   animation: {
     width: 70,
     height: 70,
-  },
-  onButton: {
-    paddingVertical: 5,
-    marginRight: 10,
-    backgroundColor: '#4CAF50',
-    alignItems: 'center',
-    borderRadius: 5,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   addButtonContainer: {
     position: 'absolute',
@@ -426,13 +520,47 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   cancelButton: {
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(240, 151, 129, 0.86)',
     padding: 10,
-    borderRadius: 5,
-    marginTop: 20,
+    borderRadius: 10,
+    marginTop: 300,
+
   },
   buttonText: {
-    fontSize: 21,
-    color: 'rgb(0,122,255)',
+    fontSize: 14,
+    color: '#fff',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  nameInputContainer: {
+    width: '80%',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+  },
+  input: {
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  submitButton: {
+    backgroundColor: '#58c487',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
+
+
+

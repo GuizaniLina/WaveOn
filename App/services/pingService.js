@@ -9,10 +9,10 @@ const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
 const pingService = async (idclient, iduser, token) => {
     try {
-        const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2019-10-01 01:01:01'; // Default value
+        const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2019-10-01 01:01:01'; 
         const automationlastUpdate = await AsyncStorage.getItem(`automationlastUpdate_${idclient}`) || '2020-01-01 00:00:00';
         const securitylastUpdate = await AsyncStorage.getItem(`securitylastUpdate_${idclient}`) || '2020-01-01 00:00:00';
-        const roomslastUpdate = await AsyncStorage.getItem(`roomslastUpdate_${idclient}`) || '2020-01-01 00:00:00';
+        const roomsLastUpdate = await AsyncStorage.getItem(`roomslastUpdate_${idclient}`) || '2020-01-01 00:00:00';
 
         const requestData = {
             idclient,
@@ -22,7 +22,7 @@ const pingService = async (idclient, iduser, token) => {
             idNetwork: 1,
             commandLastId: 0,
             permissionsLastUpdate: lastUpdate,
-            roomsLastUpdate: roomslastUpdate,
+            roomsLastUpdate,
             automationLastUpdate: automationlastUpdate,
             securityLastUpdate: securitylastUpdate
         };

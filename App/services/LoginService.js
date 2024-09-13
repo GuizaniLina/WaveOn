@@ -13,6 +13,7 @@ const LoginService = {
       const profileData = response.data;
       // Store the token and user info
       await AsyncStorage.setItem('user', JSON.stringify(profileData));
+      await AsyncStorage.setItem('clientname', profileData.clientname);
       await AsyncStorage.setItem('token', token);
       await AsyncStorage.setItem('idclient', idclient.toString());
       await AsyncStorage.setItem('iduser', iduser.toString());

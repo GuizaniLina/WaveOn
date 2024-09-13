@@ -8,7 +8,8 @@ import WeatherComponent from './components/WeatherComponent';
 import EStyleSheet from 'react-native-extended-stylesheet';
 import { ThemeContext } from '../ThemeProvider';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTranslation } from 'react-i18next'; // Import useTranslation hook
+import { useTranslation } from 'react-i18next'; 
+
 
 const Home = () => {
   const { theme } = useContext(ThemeContext);
@@ -155,6 +156,7 @@ const Home = () => {
                 key={room.idRoom} 
                 style={styles.card} 
                 onPress={() => navigation.navigate('RoomDetails', {
+                  rooms,
                   roomId: room.idRoom,
                   roomName: room.name,
                   roomImage: pictureUri,
@@ -166,7 +168,7 @@ const Home = () => {
                     colors={['#58c487', 'rgba(112, 160, 214, 0.3)']} 
                     style={styles.overlay}
                   >
-                    <Text style={styles.cardTitle}>{room.name}</Text>
+                    <Text style={styles.cardTitle}>{t(room.name)}</Text>
                   </LinearGradient>
                   <LinearGradient
                     colors={['rgba(88, 209, 91, 0.3)', 'rgba(112, 160, 214, 1)']} 
@@ -184,17 +186,17 @@ const Home = () => {
                         <View style={styles.iconCircle}>
                           <Image source={require('../../assets/icons/volet.png')} style={styles.icon} />
                         </View>
-                        <Text style={styles.num}>{deviceCount[8]}</Text>
+                        <Text style={styles.num}>{deviceCount[3]}</Text>
                       </View>
                       <View style={styles.deviceItem}>
                         <View style={styles.iconCircle}>
                           <Image source={require('../../assets/icons/garage.png')} style={styles.icon} />
                         </View>
-                        <Text style={styles.num}>{deviceCount[3]}</Text>
+                        <Text style={styles.num}>{deviceCount[8]}</Text>
                       </View>
                       <View style={styles.deviceItem}>
                         <View style={styles.iconCircle}>
-                          <Image source={require('../../assets/icons/clima.png')} style={styles.icon} />
+                          <Image source={require('../../assets/icons/prise.png')} style={styles.icon} />
                         </View>
                         <Text style={styles.num}>{deviceCount[7]}</Text>
                       </View>

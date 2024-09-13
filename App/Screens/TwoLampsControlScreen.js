@@ -1,11 +1,12 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity,Animated } from 'react-native';
 import { publishMQTT } from '../services/mqttService';
 import Slider from '@react-native-community/slider';
 import { ThemeContext } from '../ThemeProvider';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+
 
 export default function TwoLampsControlScreen({ route, navigation }) {
   const { node } = route.params;
@@ -22,6 +23,11 @@ export default function TwoLampsControlScreen({ route, navigation }) {
   const handleLamp2Change = async (value) => {
     setLamp2Brightness(value);
     await publishMQTT(node.unicastAddress, node.getElementAddresses()[1], value,'LightLevel');
+  };
+  const getLampStyle = (brightness) => {
+    return {
+      tintColor: brightness > 0 ? `rgba(255, 200, 45,${brightness / 100})` : theme.$textColor,
+    };
   };
 
   return (
@@ -86,6 +92,16 @@ export default function TwoLampsControlScreen({ route, navigation }) {
         />
         <Text style={[styles.value, { color: theme.$textColor }]}>{t('brightness')}: {lamp2Brightness}%</Text>
       </View>
+      <View style={styles.lampsContainer}>
+        <Animated.Image
+          source={require('../../assets/icons/lampe_dark.png')}
+          style={[styles.lampIcon, getLampStyle(lamp1Brightness)]}
+        />
+        <Animated.Image
+          source={require('../../assets/icons/lampe_dark.png')}
+          style={[styles.lampIcon, getLampStyle(lamp2Brightness)]}
+        />
+      </View>
     </View>
   );
 }
@@ -148,4 +164,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 5,
   },
+  lampsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  lampIcon: {
+    width: 100,
+    height: 150,
+    tintColor: '#FFF',
+  },
+  
 });

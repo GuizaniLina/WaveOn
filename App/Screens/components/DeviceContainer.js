@@ -1,16 +1,35 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet , Animated } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { ThemeContext } from '../../ThemeProvider';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { Swipeable } from 'react-native-gesture-handler';
+import { Ionicons } from '@expo/vector-icons';
 
-const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, onPress, onSliderChange }) => {
+const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, onPress, onSliderChange,onDelete }) => {
   const { theme } = useContext(ThemeContext);
   const { t } = useTranslation();
-  const [sliderValue, setSliderValue] = useState(sliderValues?.initial || 0);
+  const [sliderValue, setSliderValue] = useState(sliderValues.initial);
   const [isIncreasing, setIsIncreasing] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
+  const renderRightActions = (progress, dragX) => {
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0.7],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <TouchableOpacity onPress={onDelete}>
+        <View style={styles.deleteButton}>
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Ionicons name="trash" size={30} color="#FFF" />
+          </Animated.View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const handleSliderChange = (value) => {
     setSliderValue(value);
@@ -52,6 +71,7 @@ const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, on
   }, [intervalId]);
 
   return (
+    <Swipeable renderRightActions={renderRightActions} style={styles.swip} >
     <TouchableOpacity 
       onPress={onPress} 
       onLongPress={onLongPress} 
@@ -99,6 +119,7 @@ const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, on
         ))}
       </View>
     </TouchableOpacity>
+     </Swipeable>
   );
 };
 
@@ -111,6 +132,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'grey',
     borderRadius: 35,
     padding: 7,
+    margin : 5,
     marginBottom: 16,
     elevation: 3,
     shadowColor: '#000',
@@ -196,6 +218,15 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     fontSize: 11,
     color: 'white',
+  },
+  deleteButton: {
+    backgroundColor: '#ff3b30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 55,
+    borderRadius: 25,
+    height: 120,
+    margin : 5
   },
 });
 

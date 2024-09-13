@@ -6,7 +6,7 @@ const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 const downloadFile = async (idclient, iduser, token) => {
     try {
         const initialDate = '2019-10-01 01:01:01';
-        const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || initialDate;
+        const lastUpdate =  initialDate;
         const automationlastUpdate = await AsyncStorage.getItem(`automationlastUpdate_${idclient}`) || '2020-01-01 00:00:00';
         const roomslastUpdate = await AsyncStorage.getItem(`roomslastUpdate_${idclient}`) || '2020-01-01 00:00:00';
 
@@ -14,7 +14,7 @@ const downloadFile = async (idclient, iduser, token) => {
             idclient,
             iduser,
             token,
-            lastupdate: lastUpdate,
+            lastupdate: initialDate,
             commandLastId: 0,
             permissionsLastUpdate: initialDate,
             roomsLastUpdate: roomslastUpdate,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import MultiSelect from 'react-native-multiple-select';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../ThemeProvider';
@@ -7,13 +7,14 @@ import { useTranslation } from 'react-i18next';
 import ModalSelector from 'react-native-modal-selector';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-const CreateGroupScreen = ({ navigation }) => {
+const CreateGroupScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
   const { t } = useTranslation();
-  const [groupName, setGroupName] = useState('');
-  const [selectedDevices, setSelectedDevices] = useState([]);
+  const { group } = route.params || {}; // Get the group data from route params if available
+  const [groupName, setGroupName] = useState(group ? group.name : ''); // Pre-fill with group name if editing
+  const [selectedDevices, setSelectedDevices] = useState(group ? group.devices.map(device => device.deviceKey) : []); // Pre-fill selected devices
   const [nodes, setNodes] = useState([]);
-  const [category, setCategory] = useState(null);
+  const [category, setCategory] = useState(group ? group.type : null); // Pre-fill category if editing
 
   useEffect(() => {
     fetchDevices();
@@ -38,18 +39,36 @@ const CreateGroupScreen = ({ navigation }) => {
       return;
     }
 
+    const groupType = nodes.find(node => node.deviceKey === selectedDevices[0]).pid;
     const newGroup = {
-      id: Math.floor(Date.now() / 1000).toString(),
+      id: group ? group.id : Math.floor(Date.now() / 1000).toString(), // Use existing group id if editing
       name: groupName,
       devices: selectedDevices.map((deviceKey) => {
-        return nodes.find(node => node.deviceKey === deviceKey);
+        const device = nodes.find(node => node.deviceKey === deviceKey);
+        return {
+          ...device,
+          luminosity: device.pid === 2 ? (group ? group.devices.find(d => d.deviceKey === deviceKey).luminosity : 0) : undefined, // Keep or default luminosity
+          position: device.pid === 3 ? (group ? group.devices.find(d => d.deviceKey === deviceKey).position : 0) : undefined,    // Keep or default position
+        };
       }),
+      enable: group ? group.enable : false, // Keep existing enabled status or default to false
+      type: groupType,
     };
 
     try {
+      const USER_ID = await AsyncStorage.getItem('idclient');
       const storedGroups = await AsyncStorage.getItem(`groups_${USER_ID}`);
       const groups = storedGroups ? JSON.parse(storedGroups) : [];
-      const updatedGroups = [...groups, newGroup];
+      
+      let updatedGroups;
+      if (group) {
+        // Update existing group
+        updatedGroups = groups.map(g => g.id === group.id ? newGroup : g);
+      } else {
+        // Create new group
+        updatedGroups = [...groups, newGroup];
+      }
+
       await AsyncStorage.setItem(`groups_${USER_ID}`, JSON.stringify(updatedGroups));
       navigation.goBack(); // Go back to the Groups screen
     } catch (error) {
@@ -59,12 +78,12 @@ const CreateGroupScreen = ({ navigation }) => {
 
   const categoryOptions = [
     { key: 2, label: t('Lamps') },
-    { key: 3, label: t('blinds') },
-    { key: 7, label: t('climatiseur') },
-    { key: 8, label: t('porte') },
+    { key: 3, label: t('Blinds') },
+    { key: 7, label: t('prise') },
+    { key: 8, label: t('Porte') },
   ];
 
-  const filteredDevices = nodes.filter(node => node.pid === category);
+  const filteredDevices = nodes.filter(node => node.pid == category);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.$backgroundColor }]}>
@@ -81,11 +100,11 @@ const CreateGroupScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Collection</Text>
+        <Text style={styles.headerTitle}>{group ? t('Modify Group') : t('Collection')}</Text>
       </View>
 
       <View style={[styles.formContainer, { backgroundColor: theme.$standard }]}>
-        <Text style={[styles.label, { color: theme.$textColor }]}>Collection Name</Text>
+        <Text style={[styles.label, { color: theme.$textColor }]}>{t('Collection Name')}</Text>
         <TextInput
           style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
           placeholder={t('enter_group_name')}
@@ -94,7 +113,7 @@ const CreateGroupScreen = ({ navigation }) => {
           onChangeText={setGroupName}
         />
 
-        <Text style={[styles.label, { color: theme.$textColor }]}>Category</Text>
+        <Text style={[styles.label, { color: theme.$textColor }]}>{t('Category')}</Text>
         <ModalSelector
           data={categoryOptions}
           initValue={t('select_category')}
@@ -110,7 +129,7 @@ const CreateGroupScreen = ({ navigation }) => {
           />
         </ModalSelector>
 
-        <Text style={[styles.label, { color: theme.$textColor }]}>Devices</Text>
+        <Text style={[styles.label, { color: theme.$textColor }]}>{t('Devices')}</Text>
         <MultiSelect
           items={filteredDevices.map(node => ({ deviceKey: node.deviceKey, name: node.name, pid: node.pid }))}
           uniqueKey="deviceKey"
@@ -125,7 +144,7 @@ const CreateGroupScreen = ({ navigation }) => {
       </View>
 
       <TouchableOpacity style={styles.createButton} onPress={handleCreateGroup}>
-        <Text style={styles.createButtonText}>{t('add')}</Text>
+        <Text style={styles.createButtonText}>{group ? t('Save Changes') : t('Add')}</Text>
       </TouchableOpacity>
     </View>
   );

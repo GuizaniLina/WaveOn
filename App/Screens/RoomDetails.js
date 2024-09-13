@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, Image, StyleSheet, Modal, ImageBackground, TouchableOpacity, Switch, FlatList, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, Modal, TextInput, ImageBackground, TouchableOpacity, Switch, FlatList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import LampsContainer from './components/LampsContainer';
 import BlindsContainer from './components/BlindsContainer';
+import PriseContainer from './components/PriseContainer';
+import roomUpdateService from '../services/roomUpdateService';
 import { connectMQTT, toggleDeviceState, disconnectMQTT, publishMQTT } from '../services/mqttService';
 import Node from '../Class/Node';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,19 +15,19 @@ import { useTranslation } from 'react-i18next';
 const deviceComponents = {
   2: LampsContainer,
   3: BlindsContainer,
-  // Add other device types and their corresponding components here
+  7: PriseContainer, // Added Prise
 };
 
 const RoomDetails = ({ route }) => {
-  const { roomId, roomName, roomImage, assignments } = route.params;
+  const [hasPrise, setHasPrise] = useState(false);
+  const [priseName, setPriseName] = useState('Prise');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const { rooms, roomId, roomName, roomImage, assignments } = route.params;
   const { theme } = useContext(ThemeContext);
   const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
-  const [deviceStates, setDeviceStates] = useState(
-    assignments.reduce((acc, assignment) => ({ ...acc, [assignment.id]: false }), {})
-  );
-  const [hasClimatiseur, setHasClimatiseur] = useState(false);
+  const [deviceStates, setDeviceStates] = useState(assignments.reduce((acc, assignment) => ({ ...acc, [assignment.id]: false }), {}));
   const [hasPorte, setHasPorte] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -35,11 +37,11 @@ const RoomDetails = ({ route }) => {
   const [luminosity, setLuminosity] = useState(null);
   const [occupancy, setOccupancy] = useState(null);
 
-
   useEffect(() => {
-    const climatiseurPresent = assignments.some(assignment => assignment.deviceType === 7 && assignment.idRoom === roomId);
+    const prisePresent = assignments.some(assignment => assignment.deviceType === 7 && assignment.idRoom === roomId);
+    setHasPrise(prisePresent);
+
     const portePresent = assignments.some(assignment => assignment.deviceType === 8 && assignment.idRoom === roomId);
-    setHasClimatiseur(climatiseurPresent);
     setHasPorte(portePresent);
 
     const loadNodesFromStorage = async () => {
@@ -61,10 +63,7 @@ const RoomDetails = ({ route }) => {
     const updateDevices = (updatedDevices) => {
       setNodes((prevNodes) =>
         prevNodes.map(node => {
-          const deviceInRoom = assignments.find(assignment => 
-            assignment.idRoom === roomId && 
-            assignment.unicast === node.unicastAddress
-          );
+          const deviceInRoom = assignments.find(assignment => assignment.idRoom === roomId && assignment.unicast === node.unicastAddress);
           const updatedDevice = updatedDevices.find(dev => dev.unicastAddress === node.unicastAddress);
 
           if (deviceInRoom && updatedDevice) {
@@ -84,16 +83,12 @@ const RoomDetails = ({ route }) => {
     return () => {
       disconnectMQTT();
     };
-  }, [assignments, roomId , t]);
+  }, [assignments, roomId, t]);
 
   useEffect(() => {
     const devicesInRoom = assignments.filter(assignment => assignment.idRoom === roomId);
-
     if (devicesInRoom.length > 0) {
-      const filtered = nodes.filter(node => 
-        devicesInRoom.some(assignment => assignment.unicast === node.unicastAddress)
-      );
-
+      const filtered = nodes.filter(node => devicesInRoom.some(assignment => assignment.unicast === node.unicastAddress));
       setFilteredNodes(filtered);
     } else {
       setFilteredNodes([]);
@@ -102,7 +97,6 @@ const RoomDetails = ({ route }) => {
 
   useEffect(() => {
     const tempNode = filteredNodes.find(node => node.getTemperature() != null);
-
     if (tempNode) {
       setTemperature(tempNode.getTemperature());
       setOccupancy(tempNode.getOccupancy());
@@ -115,8 +109,8 @@ const RoomDetails = ({ route }) => {
       setHumidity('--');
     }
   }, [filteredNodes]);
-
-  const toggleDevice = (id) => {
+  
+  const toggleDevice = async (id) => {
     setDeviceStates((prevStates) => ({
       ...prevStates,
       [id]: !prevStates[id],
@@ -130,10 +124,39 @@ const RoomDetails = ({ route }) => {
       console.error('Error toggling device state:', error);
     }
   };
+
+  const handleTogglePrise = async (node) => {
+    const elementIndex = 0; // Assuming the Prise has only one element
+    const currentState = node.getElementStates()[elementIndex];
+    const newState = currentState > 0 ? -32768 : 32767; // Toggle state
+    await publishMQTT(node.unicastAddress, node.getElementAddresses()[elementIndex], newState, 'LightLevel'); 
+  };
+  const getPorteState = () => {
+    const porteNode = nodes.find(node => node.pid === 8); // Find the node for Porte (pid === 8)
+    if (porteNode) {
+      const elementIndex = 0; // Assuming Porte has only one element
+      const currentState = porteNode.getElementStates()[elementIndex];
+      return currentState > 0; // If state > 0, the Porte is open
+    }
+    return false; // If no state is found, return false (closed)
+  };
+  const getPorteName = () => {
+    const porteNode = nodes.find(node => node.pid === 8); 
+    const name = porteNode?.name;
+      return name;
+
+  };
+  const handleTogglePorte = async (node) => {
+      if (!node) return; // Ensure the node exists
+    const elementIndex = 0; // Assuming the Porte has only one element
+    const currentState = node.getElementStates()[elementIndex];
+    const newState = currentState > 0 ? -32768 : 32767; // Toggle state
+    await publishMQTT(node.unicastAddress, node.getElementAddresses()[elementIndex], newState, 'LightLevel'); 
+  };
   const handleNavigateToControl = (node) => {
     navigation.navigate('TwoLampsControl', { node });
   };
-  
+
   const handlePressLamp1 = async (node) => {
     try {
       await toggleDeviceState(node, 0);
@@ -141,7 +164,7 @@ const RoomDetails = ({ route }) => {
       console.error('Error toggling Lamp 1 state:', error);
     }
   };
-  
+
   const handlePressLamp2 = async (node) => {
     try {
       await toggleDeviceState(node, 1);
@@ -153,25 +176,53 @@ const RoomDetails = ({ route }) => {
   const handleOptionsPress = () => {
     setModalVisible(true);
   };
+
   const handleModify = () => {
     setModalVisible(false);
-    // Navigate to modify screen or perform modify action
-    console.log('Modify option selected');
+    navigation.navigate('RoomFormScreen', {
+      roomId,
+      roomName,
+      roomImage,
+      selectedDevices: assignments.filter(assignment => assignment.idRoom === roomId).map(assignment => assignment.unicast),
+      rooms, // Passing the entire rooms array
+      assignments, // Passing the entire assignments array
+    });
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     setModalVisible(false);
-    // Perform delete action (e.g., show confirmation alert)
+    
     Alert.alert(
       t('delete_room'),
       t('delete_room_confirmation'),
       [
         { text: t('cancel'), style: 'cancel' },
-        { text: t('delete'), onPress: () => console.log('Delete option selected') },
+        { text: t('delete'), onPress: () => performDelete() },
       ]
     );
   };
-  // Handles navigation to the BlindsControlScreen
+
+  const performDelete = async () => {
+    try {
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const token = await AsyncStorage.getItem('token');
+      
+      // Remove the room and associated assignments
+      const updatedRooms = rooms.filter(room => room.idRoom !== roomId);
+      const updatedAssignments = assignments.filter(assignment => assignment.idRoom !== roomId);
+
+      // Save the updated data
+      await roomUpdateService(idclient, iduser, token, updatedRooms, updatedAssignments);
+
+      // Navigate back after deletion
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      Alert.alert(t('error'), t('error_deleting_room'));
+    }
+  };
+
   const handleNavigateToBlindsControl = (node) => {
     navigation.navigate('BlindsControl', { node });
   };
@@ -180,20 +231,42 @@ const RoomDetails = ({ route }) => {
     await publishMQTT(node.unicastAddress, node.getElementAddresses()[0], value, 'BlindsLevel');
   };
 
+  const getDeviceComponent = (item) => {
+    const DeviceComponent = deviceComponents[item.pid];
+    if (!DeviceComponent) return null;
+    
+  const elementIndex = 0; 
+  const currentState = item.getElementStates()[elementIndex]; 
+  const isPriseOn = currentState > 0; 
+    return (
+      <DeviceComponent
+        level_A={item.pid === 2 ? ((item.getElementStates()[0]) != null ? (item.getElementStates()[0] + ' %') : '--') : undefined}
+        level_B={item.pid === 2 ? ((item.getElementStates()[1]) != null ? (item.getElementStates()[1] + ' %') : '--') : undefined}
+        sliderValues={item.pid === 3 ? item.getElementStates()[0] || 0 : undefined}
+        onPressLamp1={item.pid === 2 ? () => handlePressLamp1(item) : undefined}
+        onPressLamp2={item.pid === 2 ? () => handlePressLamp2(item) : undefined}
+        onPress={() => item.pid === 2 ? handleNavigateToControl(item) : null}
+        onSliderChange={item.pid === 3 ? (value) => handleBlindsSliderChange(item, value) : undefined}
+        onPress3={() => item.pid === 3 ? handleNavigateToBlindsControl(item) : null}
+        isOn={item.pid === 7 ? isPriseOn : undefined}
+        onToggle={item.pid === 7 ? () => handleTogglePrise(item) : undefined}
+        name = {item.name}
+      />
+    );
+  };
+
   return (
-    <ImageBackground source={roomImage} style={styles.background} blurRadius={1}>
+    <ImageBackground source={roomImage} style={styles.background} blurRadius={2}>
       <View style={styles.container}>
-      <View style={[styles.header, { backgroundColor: theme.$backgroundColor }]}>
-  <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-    <FontAwesome5 name="arrow-left" size={24} color={theme.$textColor} />
-  </TouchableOpacity>
-  
-  <Text style={[styles.headerTitle, { color: theme.$textColor }]}>{roomName}</Text>
-  
-  <TouchableOpacity style={styles.optionsButton} onPress={handleOptionsPress}>
-    <FontAwesome5 name="ellipsis-h" size={24} color={theme.$textColor} />
-  </TouchableOpacity>
-  <Modal
+        <View style={[styles.header, { backgroundColor: theme.$backgroundColor }]}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <FontAwesome5 name="arrow-left" size={24} color={theme.$textColor} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.$textColor }]}>{t(roomName)}</Text>
+          <TouchableOpacity style={styles.optionsButton} onPress={() => setModalVisible(true)}>
+            <FontAwesome5 name="ellipsis-h" size={24} color={theme.$textColor} />
+          </TouchableOpacity>
+          <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
@@ -213,7 +286,7 @@ const RoomDetails = ({ route }) => {
           </View>
         </View>
       </Modal>
-</View>
+        </View>
 
         <View style={styles.temperatureContainer}>
           <View style={styles.infoContainer}>
@@ -230,69 +303,42 @@ const RoomDetails = ({ route }) => {
               <Text style={styles.value}>{luminosity} %</Text>
             </View>
             <View style={styles.infoContainer}>
-  <Image 
-    source={
-      occupancy === null || occupancy === '--' || occupancy === 0 
-        ? require('../../assets/icons/no_one.png') 
-        : require('../../assets/icons/man.png')
-    } 
-    style={[
-      styles.infoIcon, 
-      { tintColor: occupancy === null || occupancy === '--' || occupancy === 0 ? 'white' : 'red' }
-    ]} 
-  />
-  <Text style={styles.value}>{occupancy}</Text>
-</View>
+              <Image
+                source={occupancy === null || occupancy === '--' || occupancy === 0 ? require('../../assets/icons/no_one.png') : require('../../assets/icons/man.png')}
+                style={[
+                  styles.infoIcon,
+                  { tintColor: occupancy === null || occupancy === '--' || occupancy === 0 ? 'white' : 'red' },
+                ]}
+              />
+              <Text style={styles.value}>{occupancy}</Text>
+            </View>
           </View>
         </View>
 
+        {/* Control Container for Porte */}
         <View style={styles.controlContainer}>
-          <View style={[styles.twoContainer, !hasClimatiseur && styles.disabledContainer]}>
-            <Image source={require('../../assets/icons/clima.png')} style={styles.icon} />
-            <Text style={styles.twoDeviceName}>{t('climatiseur')}</Text>
-            <Switch
-              value={deviceStates['Climatiseur']}
-              onValueChange={() => toggleDevice('Climatiseur')}
-              thumbColor={deviceStates['Climatiseur'] ? 'white' : 'rgba(172, 208, 170, 0.8)'}
-              trackColor={{ false: 'white', true: 'rgba(172, 208, 170, 0.8)' }}
-              disabled={!hasClimatiseur}
-            />
-          </View>
-          <View style={[styles.twoContainer, !hasPorte && styles.disabledContainer]}>
-            <Image source={require('../../assets/icons/garage1.png')} style={styles.icon} />
-            <Text style={styles.twoDeviceName}>{t('porte')}</Text>
-            <Switch
-              value={deviceStates['Porte']}
-              onValueChange={() => toggleDevice('Porte')}
-              thumbColor={deviceStates['Porte'] ? 'white' : 'rgba(172, 208, 170, 0.8)'}
-              trackColor={{ false: 'white', true: 'rgba(172, 208, 170, 0.8)' }}
-              disabled={!hasPorte}
-            />
-          </View>
+          {hasPorte && (
+            <View style={[styles.twoContainer, !hasPorte && styles.disabledContainer]}>
+              <Image source={require('../../assets/icons/garage1.png')} style={styles.icon} />
+              <Text style={styles.twoDeviceName}>{getPorteName()}</Text>
+              <Switch
+                value={getPorteState()}
+                onValueChange={() => handleTogglePorte(nodes.find(node => node.pid === 8))} // Handle toggle for Porte
+                thumbColor={getPorteState() ? 'white' : 'rgba(172, 208, 170, 0.8)'}
+                trackColor={{ false: 'white', true: 'rgba(172, 208, 170, 0.8)' }}
+                disabled={!hasPorte}
+              />
+            </View>
+          )}
         </View>
 
+        {/* Device List Container for Lamps, Blinds, Prise */}
         <View style={[styles.deviceListContainer, { backgroundColor: theme.$backgroundColor }]}>
           <FlatList
-            data={filteredNodes}
+            data={filteredNodes.filter(item => [2, 3, 7].includes(item.pid))}
             keyExtractor={(item) => item.unicastAddress.toString()}
             numColumns={2}
-            renderItem={({ item }) => {
-              const DeviceComponent = deviceComponents[item.pid];
-              if (!DeviceComponent) return null;
-
-              return (
-                <DeviceComponent
-                
-                  level_A={item.pid === 2 ? ((item.getElementStates()[0]) != null ? (item.getElementStates()[0] + ' %') : '--') : undefined}
-                  level_B={item.pid === 2 ? ((item.getElementStates()[1]) != null ? (item.getElementStates()[1] + ' %') : '--') : undefined}
-                  sliderValues={item.pid === 3 ? item.getElementStates()[0] || 0 : undefined}
-                  onPressLamp1={item.pid === 2 ? () => handlePressLamp1(item) : undefined}
-                  onPressLamp2={item.pid === 2 ? () => handlePressLamp2(item) : undefined}
-                  onPress={() => item.pid === 2 ? handleNavigateToControl(item) : item.pid === 3 ? handleNavigateToBlindsControl(item) : null}
-                  onSliderChange={item.pid === 3 ? (value) => handleBlindsSliderChange(item, value) : undefined}
-                />
-              );
-            }}
+            renderItem={({ item }) => getDeviceComponent(item)}
           />
         </View>
       </View>
@@ -313,11 +359,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 5,
-    justifyContent: 'space-between', 
+    justifyContent: 'space-between',
     borderBottomEndRadius: 35,
     borderBottomStartRadius: 35,
     height: 120,
     backgroundColor: '#333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   optionsButton: {
     padding: 10,
@@ -334,8 +384,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     color: '#FFF',
-   // marginLeft: 10,
-    
     fontWeight: 'bold',
   },
   temperatureContainer: {
@@ -347,6 +395,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     margin: 20,
     height: '25%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
+  },
+  priseNameInput: {
+    color: 'black',
+    marginVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: 'gray',
+    padding: 5,
+    width: 150,
   },
   temperature: {
     fontSize: 35,
@@ -375,6 +435,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   infoContainer: {
     flexDirection: 'row',
@@ -409,10 +473,10 @@ const styles = StyleSheet.create({
     flex: 1,
     borderColor: 'black',
     borderWidth: 0.3,
-  },
-  deviceName: {
-    color: 'white',
-    marginVertical: 10,
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 4,
   },
   twoDeviceName: {
     color: 'black',

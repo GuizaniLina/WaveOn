@@ -18,8 +18,8 @@ const roomUpdateService = async (idclient, iduser, token, updatedRooms, updatedA
  
     const requestData = {
        
-        idclient:84,
-        iduser:11,
+        idclient,
+        iduser,
         roomsLastUpdate:formatDateTime(new Date()),
         token,
         Rooms:updatedRooms,

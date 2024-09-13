@@ -34,7 +34,15 @@ const AutomationFormScreen = ({ navigation, route }) => {
   const [transformedNodes, setTransformedNodes] = useState([]);
   const [isAdmin, setIsAdmin] = useState(null);
   const [isGateway, setIsGateway] = useState(null);
-
+  const [isTimeInterval, setIsTimeInterval] = useState(false); // Toggle for single time or interval
+  const [fromHour, setFromHour] = useState(date.getHours() % 12 || 12);
+  const [fromMinute, setFromMinute] = useState(date.getMinutes());
+  const [fromSecond, setFromSecond] = useState(date.getSeconds());
+  const [fromAmPm, setFromAmPm] = useState(date.getHours() >= 12 ? 'PM' : 'AM');
+  const [toHour, setToHour] = useState(date.getHours() % 12 || 12);
+  const [toSecond, setToSecond] = useState(date.getSeconds());
+  const [toMinute, setToMinute] = useState(date.getMinutes());
+  const [toAmPm, setToAmPm] = useState(date.getHours() >= 12 ? 'PM' : 'AM');
   const hours = Array.from({ length: 24 }, (_, i) => ({ label: i.toString().padStart(2, '0'), value: i }));
   const minutes = Array.from({ length: 60 }, (_, i) => ({ label: i.toString().padStart(2, '0'), value: i }));
   const seconds = Array.from({ length: 60 }, (_, i) => ({ label: i.toString().padStart(2, '0'), value: i }));
@@ -65,17 +73,52 @@ const AutomationFormScreen = ({ navigation, route }) => {
   };
 
   const parseAutomationTimes = (automationTimes) => {
-    const [hour, minute, second] = automationTimes.split(';')[0]?.split('#')[0]?.split(':') || [];
-    const selectedDays = automationTimes.split(';').filter(Boolean).map(time => {
-      const [, day, period] = time.split('#');
+    const timeEntries = automationTimes.split(';').filter(Boolean);
+  
+    const selectedDays = timeEntries.map(timeEntry => {
+      const [, day] = timeEntry.split('#');
       return parseInt(day, 10);
     });
-    const amPm = automationTimes.split(';')[0]?.split('#')[2] === '0' ? 'PM' : 'AM';
-
-    setSelectedHour(parseInt(hour, 10));
-    setSelectedMinute(parseInt(minute, 10));
-    setSelectedSecond(parseInt(second, 10));
-    setAmPm(amPm);
+  
+    // Find whether there is an interval (both 0 and 1 for the same day)
+    const intervals = timeEntries.reduce((acc, entry) => {
+      const [time, day, type] = entry.split('#');
+      if (!acc[day]) acc[day] = {};
+      acc[day][type] = time;
+      return acc;
+    }, {});
+  
+    if (Object.keys(intervals).length > 0) {
+      // Assuming you only deal with one day at a time (if not, you may want to loop through days)
+      const intervalDay = Object.keys(intervals)[0];
+      if (intervals[intervalDay]['0'] && intervals[intervalDay]['1']) {
+        // Parse start and end time for the interval
+        const [fromHour, fromMinute, fromSecond] = intervals[intervalDay]['0'].split(':').map(t => parseInt(t, 10));
+        const [toHour, toMinute, toSecond] = intervals[intervalDay]['1'].split(':').map(t => parseInt(t, 10));
+  
+        setFromHour(fromHour % 12 || 12);
+        setFromMinute(fromMinute);
+        setFromSecond(fromSecond);
+        setFromAmPm(fromHour >= 12 ? 'PM' : 'AM');
+  
+        setToHour(toHour % 12 || 12);
+        setToMinute(toMinute);
+        setToSecond(toSecond);
+        setToAmPm(toHour >= 12 ? 'PM' : 'AM');
+  
+        setIsTimeInterval(true);
+      } else {
+        // Parse single time entry
+        const [hour, minute, second] = intervals[intervalDay]['0'].split(':').map(t => parseInt(t, 10));
+        setSelectedHour(hour % 12 || 12);
+        setSelectedMinute(minute);
+        setSelectedSecond(second);
+        setAmPm(hour >= 12 ? 'PM' : 'AM');
+        
+        setIsTimeInterval(false);
+      }
+    }
+  
     setSelectedDays(selectedDays);
   };
 
@@ -165,6 +208,20 @@ const AutomationFormScreen = ({ navigation, route }) => {
     setDate(updatedDate);
   };
 
+  const handleTimeIntervalChange = (timeType, hour, minute,second, amPm) => {
+    if (timeType === 'from') {
+      setFromHour(hour);
+      setFromMinute(minute);
+      setFromAmPm(amPm);
+      setFromSecond(second)
+    } else {
+      setToHour(hour);
+      setToMinute(minute);
+      setToAmPm(amPm);
+      setToSecond(second)
+    }
+  };
+
   const handleDeviceSelectionChange = (selectedItems) => {
     setSelectedDevices(selectedItems);
   };
@@ -241,6 +298,18 @@ const AutomationFormScreen = ({ navigation, route }) => {
         Alert.alert(t('Error'), t(`automation_form.error_name`)  );
         return;
       }
+      if (!isTimeInterval) {
+        // Clear interval-specific state when switching to single date
+        setFromHour(null);
+        setFromMinute(null);
+        setFromSecond(null);
+        setFromAmPm(null);
+        setToHour(null);
+        setToMinute(null);
+        setToSecond(null);
+        setToAmPm(null);
+      }
+      
   
       // If we are editing, use the existing automation ID
       const idAutomation = route.params?.editAutomation?.idAutomation || Math.floor(Date.now() / 1000);
@@ -282,14 +351,28 @@ const AutomationFormScreen = ({ navigation, route }) => {
         return `${deviceName}:${elementAddress}:${unicastAddress}:${value}`;
       }).join(';') + ';';
   
-      // Constructing automationTimes (for scheduled events)
-      const automationTimes = (eventType === 2 || showPlanification) 
-      ? selectedDays.map(day => {
-          const hour = amPm === 'PM' ? selectedHour % 12 + 12 : selectedHour % 12; // Convert to 24-hour format
-          const period = amPm === 'PM' ? '0' : '1'; // '1' for PM, '0' for AM
-          return `${hour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}:${selectedSecond.toString().padStart(2, '0')}#${day}#${period};`;
-        }).join('')
-      : '';
+    
+    const automationTimes = (eventType === 2 || showPlanification) 
+  ? selectedDays
+      .map(day => {
+        if (isTimeInterval) {
+          // For time interval: Generate both 'from' and 'to' times
+          const fromHour24 = fromAmPm === 'PM' ? fromHour % 12 + 12 : fromHour % 12;
+          const toHour24 = toAmPm === 'PM' ? toHour % 12 + 12 : toHour % 12;
+
+          return `${fromHour24.toString().padStart(2, '0')}:${fromMinute.toString().padStart(2, '0')}:${fromSecond.toString().padStart(2, '0')}#${day}#0;` +
+                 `${toHour24.toString().padStart(2, '0')}:${toMinute.toString().padStart(2, '0')}:${toSecond.toString().padStart(2, '0')}#${day}#1;`;
+        } else {
+          // For single date: Generate only one entry per day
+          const hour24 = amPm === 'PM' ? selectedHour % 12 + 12 : selectedHour % 12;
+          return `${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}:${selectedSecond.toString().padStart(2, '0')}#${day}#0;`;
+        }
+      })
+      .filter(Boolean) // Filter out any undefined or null values
+      .join('') // Join the array to form the string
+  : '';
+
+
       const declencheur = déclencheurData.find(item => item.key === selectedDeclencheur); 
       const automationTriggers = (eventType === 0 || eventType === 3 || eventType === 1) && selectedDeclencheur
       ? `${declencheur.label}:${declencheur.unicastAddress || ''}:${showPlanification ? 1 : 0}:${condition}:${operator}:${value};`
@@ -380,160 +463,268 @@ const AutomationFormScreen = ({ navigation, route }) => {
 
               <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.event_type')}</Text>
               <ModalSelector
-                data={eventTypeData.map(item => ({ key: item.key, label: item.label }))}
-                initValue={t('automation_form.select_event_type')}
-                onChange={(option) => setEventType(option.key)}
-                style={styles.selector}
-              >
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
-                  editable={false}
-                  placeholder={t('automation_form.select_event_type')}
-                  value={eventTypeData.find(item => item.key === eventType)?.label}
-                />
-              </ModalSelector>
+  data={eventTypeData.map(item => ({
+    key: item.key,
+    label: item.label,
+    disabled: item.key === 3 && item.key === 4 // Disable options with key 3 and 4
+  }))}
+  initValue={t('automation_form.select_event_type')}
+  onChange={(option) => setEventType(option.key)}
+  style={styles.selector}
+>
+  <TextInput
+    style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
+    editable={false}
+    placeholder={t('automation_form.select_event_type')}
+    value={eventTypeData.find(item => item.key === eventType)?.label}
+  />
+</ModalSelector>
+ 
             </>
           )}
 
-          {step === 2 && (
-            <>
-              {((eventType === 0) || (eventType === 3) ||(eventType === 1) ) && (
-                <View style={styles.conditionalContainer}>
-                  <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.trigger')}</Text>
-                  <ModalSelector
-                    data={déclencheurData}
-                    initValue={t('automation_form.select_trigger')}
-                    onChange={(option) => setSelectedDeclencheur(option.key)}
-                    style={styles.selector}
-                  >
-                    <TextInput
-                      style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
-                      editable={false}
-                      placeholder={t('automation_form.select_trigger')}
-                      value={déclencheurData.find(item => item.key === selectedDeclencheur)?.label}
-                    />
-                  </ModalSelector>
+{step === 2 && (
+  <>
+    {((eventType === 1) || (eventType === 3)) && ( // Only show trigger if eventType is 1 or 3
+      <View style={styles.conditionalContainer}>
+        <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.trigger')}</Text>
+        <ModalSelector
+          data={déclencheurData}
+          initValue={t('automation_form.select_trigger')}
+          onChange={(option) => setSelectedDeclencheur(option.key)}
+          style={styles.selector}
+        >
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
+            editable={false}
+            placeholder={t('automation_form.select_trigger')}
+            value={déclencheurData.find(item => item.key === selectedDeclencheur)?.label}
+          />
+        </ModalSelector>
+      </View>
+    )}
 
-                  <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.condition')}</Text>
-                  <ModalSelector
-                    data={conditionData.map(item => ({ key: item.key, label: item.label}))}
-                    initValue={t('automation_form.select_condition')}
-                    onChange={(option) => setCondition(option.key)}
-                    style={styles.selector}
-                  >
-                    <TextInput
-                      style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
-                      editable={false}
-                      placeholder={t('automation_form.select_condition')}
-                      value={conditionData.find(item => item.key === condition)?.label}
-                    />
-                  </ModalSelector>
+    {/* Common condition, operator, value inputs */}
+    <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.condition')}</Text>
+    <ModalSelector
+      data={conditionData.map(item => ({ key: item.key, label: item.label}))}
+      initValue={t('automation_form.select_condition')}
+      onChange={(option) => setCondition(option.key)}
+      style={styles.selector}
+    >
+      <TextInput
+        style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
+        editable={false}
+        placeholder={t('automation_form.select_condition')}
+        value={conditionData.find(item => item.key === condition)?.label}
+      />
+    </ModalSelector>
 
-                  <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.operator')}</Text>
-                  <ModalSelector
-                    data={operatorData.map(item => ({ key: item.key, label: item.label }))}
-                    initValue={t('automation_form.select_operator')}
-                    onChange={(option) => setOperator(option.key)}
-                    style={styles.selector}
-                  >
-                    <TextInput
-                      style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
-                      editable={false}
-                      placeholder={t('automation_form.select_operator')}
-                      value={operatorData.find(item => item.key === operator)?.label}
-                    />
-                  </ModalSelector>
+    <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.operator')}</Text>
+    <ModalSelector
+      data={operatorData.map(item => ({ key: item.key, label: item.label }))} 
+      initValue={t('automation_form.select_operator')}
+      onChange={(option) => setOperator(option.key)}
+      style={styles.selector}
+    >
+      <TextInput
+        style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
+        editable={false}
+        placeholder={t('automation_form.select_operator')}
+        value={operatorData.find(item => item.key === operator)?.label}
+      />
+    </ModalSelector>
 
-                  <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.value')}</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
-                    value={value}
-                    onChangeText={setValue}
-                    keyboardType="numeric"
-                  />
+    <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.value')}</Text>
+    <TextInput
+      style={[styles.input, { backgroundColor: theme.$standard, borderColor: theme.$textColor, color: theme.$textColor }]}
+      value={value}
+      onChangeText={setValue}
+      keyboardType="numeric"
+    />
 
-                  <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.add_schedule')}</Text>
-                  <Switch
-                    value={showPlanification}
-                    onValueChange={setShowPlanification}
-                  />
-                </View>
-              )}
-            </>
-          )}
+    <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.add_schedule')}</Text>
+    <Switch
+      value={showPlanification}
+      onValueChange={setShowPlanification}
+    />
+  </>
+)}
 
           {step === 3 && (
-            <>
-              <View style={styles.planificationContainer}>
-                <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.date_time')}</Text>
-                <View style={styles.timePickerContainer}>
-                  <View style={styles.pickerContainer}>
-                    <RNPickerSelect
-                      placeholder={{}}
-                      items={hours}
-                      onValueChange={(hour) => handleTimeChange(hour, selectedMinute, selectedSecond, amPm)}
-                      value={selectedHour}
-                      style={pickerSelectStyles}
-                    />
-                  </View>
-                  <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
-                  <View style={styles.pickerContainer}>
-                    <RNPickerSelect
-                      placeholder={{}}
-                      items={minutes}
-                      onValueChange={(minute) => handleTimeChange(selectedHour, minute, selectedSecond, amPm)}
-                      value={selectedMinute}
-                      style={pickerSelectStyles}
-                    />
-                  </View>
-                  <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
-                  <View style={styles.pickerContainer}>
-                    <RNPickerSelect
-                      placeholder={{}}
-                      items={seconds}
-                      onValueChange={(second) => handleTimeChange(selectedHour, selectedMinute, second, amPm)}
-                      value={selectedSecond}
-                      style={pickerSelectStyles}
-                    />
-                  </View>
-                  <View style={styles.pickerContainer}>
-                    <RNPickerSelect
-                      placeholder={{}}
-                      items={amPmOptions}
-                      onValueChange={(ampm) => handleTimeChange(selectedHour, selectedMinute, selectedSecond, ampm)}
-                      value={amPm}
-                      style={pickerSelectStyles}
-                    />
-                  </View>
-                </View>
-                <Text style={[styles.selectedValue, { color: theme.$textColor }]}>
-                  {`${selectedHour}:${selectedMinute}:${selectedSecond} ${amPm}`}
-                </Text>
+           <>
+  <View style={styles.planificationContainer}>
+       {/* Days Selection */}
+    <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.days')}</Text>
+    <View style={styles.daySelectionContainer}>
+      {daysOfWeek.map((day) => (
+        <TouchableOpacity
+          key={day.key}
+          style={[
+            styles.dayButton,
+            selectedDays.includes(day.key) && styles.dayButtonSelected,
+          ]}
+          onPress={() => toggleDaySelection(day.key)}
+        >
+          <Text
+            style={[
+              styles.dayButtonText,
+              selectedDays.includes(day.key) && styles.dayButtonTextSelected,
+            ]}
+          >
+            {day.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+    <View style={styles.switchContainer}>
+      <View style={styles.switchWrapper}>
+        <Text style={[styles.switchText, { color: theme.$textColor }]}>
+        {isTimeInterval ? t('automation_form.time_interval') : t('automation_form.single_date')}
+        </Text>
+        <Switch value={isTimeInterval} onValueChange={setIsTimeInterval} />
+      </View>
+    </View>
 
-                <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.days')}</Text>
-                <View style={styles.daySelectionContainer}>
-                  {daysOfWeek.map((day) => (
-                    <TouchableOpacity
-                      key={day.key}
-                      style={[
-                        styles.dayButton,
-                        selectedDays.includes(day.key) && styles.dayButtonSelected,
-                      ]}
-                      onPress={() => toggleDaySelection(day.key)}
-                    >
-                      <Text
-                        style={[
-                          styles.dayButtonText,
-                          selectedDays.includes(day.key) && styles.dayButtonTextSelected,
-                        ]}
-                      >
-                        {day.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </>
+    {/* Single Time Picker */}
+    {!isTimeInterval ? (
+      <View style={styles.timePickerContainer}>
+        <View style={styles.pickerContainer}>
+          <RNPickerSelect
+            placeholder={{}}
+            items={hours}
+            onValueChange={(hour) => handleTimeChange(hour, selectedMinute, selectedSecond, amPm)}
+            value={selectedHour}
+            style={pickerSelectStyles}
+          />
+        </View>
+        <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
+        <View style={styles.pickerContainer}>
+          <RNPickerSelect
+            placeholder={{}}
+            items={minutes}
+            onValueChange={(minute) => handleTimeChange(selectedHour, minute, selectedSecond, amPm)}
+            value={selectedMinute}
+            style={pickerSelectStyles}
+          />
+        </View>
+        <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
+        <View style={styles.pickerContainer}>
+          <RNPickerSelect
+            placeholder={{}}
+            items={seconds}
+            onValueChange={(second) => handleTimeChange(selectedHour, selectedMinute, second, amPm)}
+            value={selectedSecond}
+            style={pickerSelectStyles}
+          />
+        </View>
+        <View style={styles.pickerContainer}>
+          <RNPickerSelect
+            placeholder={{}}
+            items={amPmOptions}
+            onValueChange={(ampm) => handleTimeChange(selectedHour, selectedMinute, selectedSecond, ampm)}
+            value={amPm}
+            style={pickerSelectStyles}
+          />
+        </View>
+      </View>
+    ) : (
+      // Time Interval Pickers (including seconds)
+      <>
+        <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.from')}</Text>
+        <View style={styles.timePickerContainer}>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={hours}
+              onValueChange={(hour) => handleTimeIntervalChange('from', hour, fromMinute, fromSecond, fromAmPm)}
+              value={fromHour}
+              style={pickerSelectStyles}
+            />
+          </View>
+          <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={minutes}
+              onValueChange={(minute) => handleTimeIntervalChange('from', fromHour, minute, fromSecond, fromAmPm)}
+              value={fromMinute}
+              style={pickerSelectStyles}
+            />
+          </View>
+          <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={seconds}
+              onValueChange={(second) => handleTimeIntervalChange('from', fromHour, fromMinute, second, fromAmPm)}
+              value={fromSecond}
+              style={pickerSelectStyles}
+            />
+          </View>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={amPmOptions}
+              onValueChange={(ampm) => handleTimeIntervalChange('from', fromHour, fromMinute, fromSecond, ampm)}
+              value={fromAmPm}
+              style={pickerSelectStyles}
+            />
+          </View>
+        </View>
+
+        <Text style={[styles.label, { color: theme.$textColor }]}>{t('automation_form.to')}</Text>
+        <View style={styles.timePickerContainer}>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={hours}
+              onValueChange={(hour) => handleTimeIntervalChange('to', hour, toMinute, toSecond, toAmPm)}
+              value={toHour}
+              style={pickerSelectStyles}
+            />
+          </View>
+          <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={minutes}
+              onValueChange={(minute) => handleTimeIntervalChange('to', toHour, minute, toSecond, toAmPm)}
+              value={toMinute}
+              style={pickerSelectStyles}
+            />
+          </View>
+          <Text style={[styles.colon, { color: theme.$textColor }]}>:</Text>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={seconds}
+              onValueChange={(second) => handleTimeIntervalChange('to', toHour, toMinute, second, toAmPm)}
+              value={toSecond}
+              style={pickerSelectStyles}
+            />
+          </View>
+          <View style={styles.pickerContainer}>
+            <RNPickerSelect
+              placeholder={{}}
+              items={amPmOptions}
+              onValueChange={(ampm) => handleTimeIntervalChange('to', toHour, toMinute, toSecond, ampm)}
+              value={toAmPm}
+              style={pickerSelectStyles}
+            />
+          </View>
+        </View>
+      </>
+    )}
+
+    <Text style={[styles.selectedValue, { color: theme.$textColor }]}>
+      {isTimeInterval
+        ? `${fromHour}:${fromMinute}:${fromSecond} ${fromAmPm} - ${toHour}:${toMinute}:${toSecond} ${toAmPm}`
+        : `${selectedHour}:${selectedMinute}:${selectedSecond} ${amPm}`}
+    </Text>
+  </View>
+</>
+
           )}
 
           {step === 4 && (
@@ -680,6 +871,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 10,
   },
+  switchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 10,
+  },
+  switchText: {
+    marginRight: 10, 
+    fontSize: 16, 
+    fontWeight:"bold"
+  },
   input: {
     height: 40,
     borderColor: '#fff',
@@ -725,8 +927,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   selectedValue: {
-    marginLeft: 110,
-    marginTop: 10,
+    justifyContent:"center",
+    alignContent:"center",
+    alignItems :"center",
+    alignSelf:"center",
+    marginTop: 5,
     fontSize: 18,
     color: '#FFF',
   },
@@ -778,7 +983,7 @@ const styles = StyleSheet.create({
     borderColor: '#58c487',
   },
   dayButtonText: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#000',
   },
   dayButtonTextSelected: {

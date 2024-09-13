@@ -1,47 +1,42 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, Switch, Alert, SafeAreaView, Image, TouchableOpacity } from 'react-native';
 import securityGetService from '../services/securityGetService';
 import securityUpdateService from '../services/securityUpdateService';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, Switch, SafeAreaView, Image, TouchableOpacity, Button } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../ThemeProvider';
 import { useTranslation } from 'react-i18next';
+import * as Notifications from 'expo-notifications';
+import * as Permissions from 'expo-permissions';
+import * as BackgroundFetch from 'expo-background-fetch';
+import * as TaskManager from 'expo-task-manager'; // Import Task Manager for background tasks
+import Node from '../Class/Node';
+import throttle from 'lodash.throttle';
+import moment from 'moment';
 
-const Security = ({ navigation }) => {
+// Define background task name
+const BACKGROUND_FETCH_TASK = 'check-node-occupancy-task';
+
+const Security = ({ navigation, addNotification }) => {
   const [securityOptions, setSecurityOptions] = useState([]);
   const { theme } = useContext(ThemeContext);
-  const { t } = useTranslation();  // Hook for translation
+  const { t } = useTranslation();
   const [isAdmin, setIsAdmin] = useState(null);
-  const [isGateway, setIsGateway] = useState(null);
+  const [isGateway, setIsGateway] = useState(null); 
+  const [localNotificationEnabled, setLocalNotificationEnabled] = useState(false); // Local state for notifications
+  const [selectedNotificationNodes, setSelectedNotificationNodes] = useState([]); // Selected nodes for notification
 
-  const fetchSecurity = async () => {
-    try {
-      const idclient = await AsyncStorage.getItem('idclient');
-      const iduser = await AsyncStorage.getItem('iduser');
-      const idNetwork = 1;
-      const token = await AsyncStorage.getItem('token');
-      setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
-      setIsGateway(await AsyncStorage.getItem('user_isgateway'));
-
-      const securityResponse = await securityGetService(idclient, iduser, idNetwork, token);
-      console.log('Security data:', securityResponse);
-      setSecurityOptions(securityResponse.securityOption);
-
-    } catch (error) {
-      console.error(t('fetch_security_error'), error);
-      Alert.alert(t('error'), t('fetch_security_error'));
+  // Ask for notification permissions on iOS and Android
+  const requestNotificationPermissions = async () => {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Permission for notifications was denied.');
     }
   };
-
-  useEffect(() => {
-    fetchSecurity();
-  }, []);
-
   useEffect(() => {
     const checkProfileChange = async () => {
       const idclient = await AsyncStorage.getItem('idclient');
       const iduser = await AsyncStorage.getItem('iduser');
       const token = await AsyncStorage.getItem('token');
-  console.log('iconn',getIcon('Alarm'));
       if (idclient && iduser && token) {
         fetchSecurity();
       }
@@ -51,33 +46,160 @@ const Security = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
-  const handleToggle = async (option) => {
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+
+    requestNotificationPermissions();
+    fetchSecurity();
+
+    // Register background fetch task
+    registerBackgroundFetchTask();
+  }, []);
+
+  // Fetch security options and notification nodes
+  const fetchSecurity = async () => {
     try {
-      const updatedOptions = securityOptions.map(item =>
-        item.idSecurityOption === option.idSecurityOption
-          ? { ...item, enable: !item.enable }
-          : item
-      );
-      setSecurityOptions(updatedOptions);
-      await AsyncStorage.setItem('securityOption', JSON.stringify(updatedOptions));
-      console.log(`${t('option')} ${option.name} ${t('changed')} ${!option.enable}`);
-
-      // Get the updated config from AsyncStorage
-      const storedConfig = await AsyncStorage.getItem('securityConfig');
-      const securityConfig = storedConfig ? JSON.parse(storedConfig) : {};
-
-      // Update the security options on the server
       const idclient = await AsyncStorage.getItem('idclient');
       const iduser = await AsyncStorage.getItem('iduser');
       const idNetwork = 1;
       const token = await AsyncStorage.getItem('token');
+      const USER_ID = await AsyncStorage.getItem('idclient');
 
-      await securityUpdateService(idclient, iduser, idNetwork, token, updatedOptions, securityConfig, []);
-      console.log('Security options updated successfully on the server');
+      setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
+      setIsGateway(await AsyncStorage.getItem('user_isgateway'));
+
+      const securityResponse = await securityGetService(idclient, iduser, idNetwork, token);
+      setSecurityOptions(securityResponse.securityOption);
+
+      const storedNotificationNodes = await AsyncStorage.getItem(`storedNotificationNodes_${USER_ID}`);
+      if (storedNotificationNodes) {
+        setSelectedNotificationNodes(JSON.parse(storedNotificationNodes));
+      }
+
+      const storedLocalNotificationEnabled = await AsyncStorage.getItem(`localNotificationEnabled_${USER_ID}`);
+      if (storedLocalNotificationEnabled !== null) {
+        setLocalNotificationEnabled(JSON.parse(storedLocalNotificationEnabled));
+      }
     } catch (error) {
-      console.error(t('update_option_error'), error);
-      Alert.alert(t('error'), t('update_option_error'));
+      console.error(t('fetch_security_error'), error);
     }
+  };
+
+  // Throttle node occupancy checks
+  const checkNodeOccupancy = throttle(async () => {
+    try {
+      const USER_ID = await AsyncStorage.getItem('idclient');
+      const nodesString = await AsyncStorage.getItem(`nodes_${USER_ID}`);
+
+      if (nodesString) {
+        const nodes = JSON.parse(nodesString).map(data => new Node(data));
+        const filteredNodes = nodes.filter(node => selectedNotificationNodes.includes(node.unicastAddress));
+
+        filteredNodes.forEach(node => {
+          if (node.getOccupancy() > 0 && localNotificationEnabled) {
+            sendLocalNotification(node.name); // Trigger notification if occupancy > 0
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error checking node occupancy:', error);
+    }
+  }, 5000);
+
+  // Background fetch task function
+  const checkNodeOccupancyInBackground = async () => {
+    try {
+      console.log('Running background task...');
+      await checkNodeOccupancy(); // Call the same logic used for checking node occupancy
+      return BackgroundFetch.BackgroundFetchResult.NewData;
+    } catch (error) {
+      console.error('Error in background task:', error);
+      return BackgroundFetch.BackgroundFetchResult.Failed;
+    }
+  };
+
+  // Register the background task
+  const registerBackgroundFetchTask = async () => {
+    try {
+      await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+        minimumInterval: 15 * 60, // 15 minutes
+        stopOnTerminate: false,
+        startOnBoot: true,
+      });
+      console.log('Background fetch task registered');
+    } catch (error) {
+      console.error('Error registering background fetch task:', error);
+    }
+  };
+
+  // Define the background task with TaskManager
+  TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
+    return checkNodeOccupancyInBackground();
+  });
+
+  const sendLocalNotification = async (nodeName) => {
+    try {
+      const user = await AsyncStorage.getItem('user');
+      const parsedUser = JSON.parse(user);
+      const message = `${parsedUser.clientname}\n${nodeName} detected movement!`;
+    
+    // Add to notification array in Accueil component
+    addNotification(message);
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Occupancy Alert',
+          body: `${parsedUser.clientname}\n${nodeName} detected movement!`,
+          sound: true,
+        },
+        trigger: null, // Immediate notification
+      });
+      console.log("Notification scheduled successfully");
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  };
+
+  const handleNotificationToggle = async () => {
+    const USER_ID = await AsyncStorage.getItem('idclient');
+    const newValue = !localNotificationEnabled;
+    setLocalNotificationEnabled(newValue);
+    await AsyncStorage.setItem(`localNotificationEnabled_${USER_ID}`, JSON.stringify(newValue));
+  };
+
+  const handleToggle = async (option) => {
+    if (option.name === 'Send Notification') {
+      handleNotificationToggle();
+    } else {
+      try {
+        const updatedOptions = securityOptions.map(item =>
+          item.idSecurityOption === option.idSecurityOption ? { ...item, enable: !item.enable } : item
+        );
+        setSecurityOptions(updatedOptions);
+        await AsyncStorage.setItem('securityOption', JSON.stringify(updatedOptions));
+
+        const storedConfig = await AsyncStorage.getItem('securityConfig');
+        const securityConfig = storedConfig ? JSON.parse(storedConfig) : {};
+        const idclient = await AsyncStorage.getItem('idclient');
+        const iduser = await AsyncStorage.getItem('iduser');
+        const idNetwork = 1;
+        const token = await AsyncStorage.getItem('token');
+        const updateSecurityTriggers = JSON.parse(await AsyncStorage.getItem('securityTriggers'));
+
+        await securityUpdateService(idclient, iduser, idNetwork, token, updatedOptions, securityConfig, updateSecurityTriggers);
+      } catch (error) {
+        console.error(t('update_option_error'), error);
+      }
+    }
+  };
+
+  const triggerTestNotification = () => {
+    sendLocalNotification("Test Device");
   };
 
   return (
@@ -89,20 +211,28 @@ const Security = ({ navigation }) => {
         </TouchableOpacity>
       </View>
       {securityOptions.map(option => (
-        <View style={[styles.optionContainer, { backgroundColor: theme.$standard }]} key={option.idSecurityOption}>
+        <TouchableOpacity
+          style={[styles.optionContainer, { backgroundColor: theme.$standard }]}
+          key={option.idSecurityOption}
+          onPress={() => navigation.navigate('DeviceSelectorScreen', { option: option.name })}
+        >
           <Image
             source={getIcon(option.name)}
             style={[styles.optionIcon, { tintColor: theme.$textColor }]}
           />
           <Text style={[styles.optionText, { color: theme.$textColor }]}>{t(option.name.toLowerCase().replace(/ /g, '_'))}</Text>
           <Switch
-            value={option.enable}
+            value={option.name === 'Send Notification' ? localNotificationEnabled : option.enable}
             onValueChange={() => handleToggle(option)}
             trackColor={{ false: theme.$standard, true: 'rgba(153, 222, 160, 0.74)' }}
-            thumbColor={option.enable ? theme.$standard : ' rgba(153, 222, 160, 0.74)'}
+            thumbColor={option.name === 'Send Notification' ? (localNotificationEnabled ? theme.$standard : theme.$standard) : theme.$standard }
           />
-        </View>
+        </TouchableOpacity>
       ))}
+
+      <View style={styles.testButtonContainer}>
+        <Button title="Send Test Notification" onPress={triggerTestNotification} />
+      </View>
     </SafeAreaView>
   );
 };
@@ -175,6 +305,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#FFF',
     flex: 1,
+  },
+  testButtonContainer: {
+    marginTop: 20,
+    alignItems: 'center',
   },
 });
 

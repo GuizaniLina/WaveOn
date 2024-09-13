@@ -1,7 +1,6 @@
-
 import 'intl-pluralrules';
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, CommonActions } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ThemeProvider } from './App/ThemeProvider';
@@ -32,15 +31,17 @@ import HouseLocalisationScreen from './App/Screens/Drawer/HouseLocalisationScree
 import EStyleSheet from 'react-native-extended-stylesheet';
 import TwoLampsControlScreen from './App/Screens/TwoLampsControlScreen';
 import BlindsControlScreen from './App/Screens/BlindsControlScreen';
-import CreateGroupScreen from './App/Screens/CreateGroupScreen'
+import CreateGroupScreen from './App/Screens/CreateGroupScreen';
+import DeviceSelectorScreen from './App/Screens/DeviceSelectorScreen'; 
 import './App/i18n'; // Import the i18n configuration
 import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, View } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(null); // null to indicate loading state
   const { i18n } = useTranslation();
 
   useEffect(() => {
@@ -50,25 +51,42 @@ export default function App() {
       if (savedLanguage) {
         i18n.changeLanguage(savedLanguage); // Use react-i18next to change language
       }
-      setIsLoggedIn(!!userToken);
+      setIsLoggedIn(!!userToken); // Set the login status
     };
 
     checkLoginStatus();
   }, []);
 
-  // Conditionally set the initial route based on login status
-  const initialRouteName = isLoggedIn ? 'HomeScreen' : 'WelcomeScreen';
+  if (isLoggedIn === null) {
+    // Show loading indicator while checking login status
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  // Reset the navigation stack after successful login
+  const handleLoginSuccess = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'HomeScreen' }], // Replace 'HomeScreen' with your main screen
+      })
+    );
+    setIsLoggedIn(true); // Update the state to reflect login status
+  };
 
   // Define StackNavigator inside the main component to access isLoggedIn
   const StackNavigator = () => (
-    <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName={ isLoggedIn? 'HomeScreen' :'WelcomeScreen'} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
+      <Stack.Screen name="Signup" component={Signup} options={{ headerShown: false }} />
+      <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="AutomationFormScreen" component={AutomationFormScreen} />
       <Stack.Screen name="RoomFormScreen" component={RoomFormScreen} />
-      <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="RoomDetails" component={RoomDetails} />
-      <Stack.Screen name="Signup" component={Signup} />
       <Stack.Screen name="Start" component={Start} />
       <Stack.Screen name="Profile" component={Devices} />
       <Stack.Screen name="Security" component={Security} />
@@ -86,6 +104,7 @@ export default function App() {
       <Stack.Screen name="TwoLampsControl" component={TwoLampsControlScreen} />
       <Stack.Screen name="BlindsControl" component={BlindsControlScreen} />
       <Stack.Screen name="CreateGroupScreen" component={CreateGroupScreen} />
+      <Stack.Screen name="DeviceSelectorScreen" component={DeviceSelectorScreen} />
     </Stack.Navigator>
   );
 

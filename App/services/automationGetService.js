@@ -31,7 +31,7 @@ const automationGetService = async (idclient, iduser, idNetwork, token) => {
       // Store data in AsyncStorage
       await AsyncStorage.setItem('automationFile', JSON.stringify(response.data));
       await AsyncStorage.setItem('automations', JSON.stringify(response.data.automations));
-      await AsyncStorage.setItem(`automationlastUpdate_${idclient}`, JSON.stringify(response.data.automationsLastUpdate));
+      await AsyncStorage.setItem(`automationlastUpdate_${idclient}`, response.data.automationsLastUpdate.toString());
       console.log('Automation data successfully stored');
     } else {
       console.error('Invalid response from service');

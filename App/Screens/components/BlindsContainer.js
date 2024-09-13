@@ -4,7 +4,7 @@ import Slider from '@react-native-community/slider';
 import { ThemeContext } from '../../ThemeProvider';
 import { useTranslation } from 'react-i18next';
 
-const BlindsContainer = ({ sliderValues, onPress,onSliderChange }) => {
+const BlindsContainer = ({ sliderValues, onPress3,onSliderChange ,name}) => {
   const { theme } = useContext(ThemeContext);
   const { t } = useTranslation();
   const [sliderValue, setSliderValue] = useState(sliderValues);
@@ -16,9 +16,9 @@ const BlindsContainer = ({ sliderValues, onPress,onSliderChange }) => {
     }
   };
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.deviceContainer, { backgroundColor: theme.$standard, borderColor: theme.$standard }]}>
+    <TouchableOpacity onPress={onPress3} style={[styles.deviceContainer, { backgroundColor: theme.$standard, borderColor: theme.$standard }]}>
       <View style={styles.textContainer}>
-        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>{t('blinds')}</Text>
+        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>{name}</Text>
       </View>
       <View style={styles.headerContainer}>
         <View style={styles.cercle}>

@@ -92,6 +92,7 @@ const SecurityConfig = ({ navigation }) => {
       const idNetwork = 1;
       const token = await AsyncStorage.getItem('token');
       const securityOption = JSON.parse(await AsyncStorage.getItem('securityOption'));
+      const updateSecurityTriggers = JSON.parse(await AsyncStorage.getItem('securityTriggers'));
 
       const formattedEmails = emails.filter(email => email).join(';');
       const formattedPhoneNumbers = phoneNumbers.filter(number => number).join(';');
@@ -113,7 +114,7 @@ const SecurityConfig = ({ navigation }) => {
         alarmPassKey: null
       };
 
-      await securityUpdateService(idclient, iduser, idNetwork, token, securityOption, updateSecurityConfig, []);
+      await securityUpdateService(idclient, iduser, idNetwork, token, securityOption, updateSecurityConfig, updateSecurityTriggers);
       await AsyncStorage.setItem('securityConfig', JSON.stringify(updateSecurityConfig));
 
       Alert.alert(t('success'), t('security_config_updated'));

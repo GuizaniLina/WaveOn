@@ -12,7 +12,7 @@ const wakeUpServer = async () => {
   if (client && client.isConnected()) {
     console.log('Sending wake up message...');
     const message = new Paho.Message('0/0/Ping/11');
-    message.destinationName = '2/1/Gateway';
+    message.destinationName = `${USER_ID}/1/Gateway`;
     await client.send(message);
     console.log('Wake up message sent.');
   } else {

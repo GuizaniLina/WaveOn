@@ -3,7 +3,7 @@ import { View, TouchableOpacity, Image, StyleSheet, Text } from 'react-native';
 import { ThemeContext } from '../../ThemeProvider';
 import { useTranslation } from 'react-i18next';
 
-const LampsContainer = ({ level_A, level_B, onPressLamp1, onPressLamp2, onPress }) => {
+const LampsContainer = ({ level_A, level_B, onPressLamp1, onPressLamp2, onPress ,name}) => {
   const isLevelActive = (level) => level !== '0 %' && level !== '--';
   const { theme } = useContext(ThemeContext);
   const { t } = useTranslation();
@@ -14,7 +14,7 @@ const LampsContainer = ({ level_A, level_B, onPressLamp1, onPressLamp2, onPress 
       onPress={onPress} // Navigate to TwoLampsControlScreen
     >
       <View style={styles.textContainer}>
-        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>{t('Lamps')}</Text>
+        <Text style={[styles.deviceTitle, { color: theme.$textColor }]}>{name}</Text>
       </View>
 
       <View style={styles.lampContainer}>

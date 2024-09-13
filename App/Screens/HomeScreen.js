@@ -1,7 +1,6 @@
 
-import moment from 'moment';
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Alert,Modal, FlatList, StyleSheet } from 'react-native';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
 import Security from './Security';
 import Automation from './Automation';
@@ -12,18 +11,87 @@ import LottieView from 'lottie-react-native';
 import EStyleSheet from 'react-native-extended-stylesheet';
 import { ThemeContext } from '../ThemeProvider';
 import { useTranslation } from 'react-i18next';
+import { DrawerActions } from '@react-navigation/native';
+import moment from 'moment';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Swipeable } from 'react-native-gesture-handler'; 
 
 const Tab = createMaterialBottomTabNavigator();
 
-const Accueil = ({ navigation, route }) => {
+const Accueil = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
-  const [weather, setWeather] = useState(null);
   const { t } = useTranslation();
   const [dateTime, setDateTime] = useState({
     date: moment().format('LL'),
     time: moment().format('LTS'),
   });
+  const [notifications, setNotifications] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+ 
+    const fetchNotifications = async () => {
+      const idclient = await AsyncStorage.getItem('idclient');
+        const storedNotifications = await AsyncStorage.getItem(`notifications_${idclient}`);
+        if (storedNotifications) {
+          setNotifications(JSON.parse(storedNotifications));
+        }
+      
+    };
+    useEffect(() => {
+    fetchNotifications();
+  }, []);
 
+  const addNotification = async (message) => {
+    const newNotification = {
+      id: notifications.length + 1,
+      message: message,
+      time: moment().format('LTS'),
+      date: moment().format('LL'),
+    };
+    setNotifications((prevNotifications) => {
+      const updatedNotifications = [...prevNotifications, newNotification];
+      storeNotifications(updatedNotifications); // Store user-specific notifications
+      return updatedNotifications;
+    });
+  };
+
+  const storeNotifications = async (notificationsList) => {
+    
+    const idclient = await AsyncStorage.getItem('idclient');
+      await AsyncStorage.setItem(`notifications_${idclient}`, JSON.stringify(notificationsList));
+  
+  };
+ 
+  useEffect(() => {
+    const checkProfileChange = async () => {
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const token = await AsyncStorage.getItem('token');
+      if (idclient && iduser && token) {
+        fetchNotifications();
+      }
+    };
+
+    const unsubscribe = navigation.addListener('focus', checkProfileChange);
+    return unsubscribe;
+  }, [navigation]);
+
+  const deleteNotification = async (id) => {
+    const updatedNotifications = notifications.filter((item) => item.id !== id);
+    setNotifications(updatedNotifications);
+    const idclient = await AsyncStorage.getItem('idclient');
+    await AsyncStorage.setItem(`notifications_${idclient}`, JSON.stringify(updatedNotifications));
+  };
+  const handleDelete = (id) => {
+    Alert.alert(
+      "Delete Notification",
+      "Are you sure you want to delete this notification?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", onPress: () => deleteNotification(id) },
+      ],
+      { cancelable: true }
+    );
+  };
   useEffect(() => {
     const interval = setInterval(() => {
       setDateTime({
@@ -31,38 +99,55 @@ const Accueil = ({ navigation, route }) => {
         time: moment().format('LTS'),
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
+
+
+  // Handle notification icon click
+  const openNotificationModal = () => {
+    setModalVisible(true);
+  };
+  const renderRightActions = (id) => (
+    <TouchableOpacity
+      style={styles.deleteButton}
+      onPress={() => handleDelete(id)}
+    >
+      <Text style={styles.deleteButtonText}>Delete</Text>
+    </TouchableOpacity>
+  );
+  const renderNotificationItem = ({ item }) => (
+    <Swipeable
+      renderRightActions={() => renderRightActions(item.id)}
+    >
+      <View style={[styles.notificationItem, { backgroundColor: theme.$standard }]}>
+        <Text style={[styles.notificationMessage, { color: theme.$textColor }]}>{item.message}</Text>
+        <Text style={[styles.notificationTime, { color: theme.$textColor }]}>{item.time} - {item.date}</Text>
+      </View>
+    </Swipeable>
+  );
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+        <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
           <Image source={require('../../assets/icons/menu.png')} style={[styles.icon, { tintColor: theme.$iconColor }]} />
         </TouchableOpacity>
         <View style={styles.dateTimeContainer}>
           <Text style={styles.dateText}>{dateTime.date}</Text>
           <Text style={styles.timeText}>{dateTime.time}</Text>
         </View>
-        {weather ? (
-          <View style={styles.weatherContainer}>
-            <Image source={{ uri: weather.icon }} style={styles.weatherIcon} />
-            <View style={{ flexDirection: 'column' }}>
-              <Text style={styles.weatherText}>{weather.temp}</Text>
-              <Text style={styles.weatherDescription}>{weather.description}</Text>
-            </View>
+        <TouchableOpacity onPress={openNotificationModal}>
+          <View style={styles.notificationIconWrapper}>
+            <Image source={require('../../assets/icons/notification.png')} style={[styles.icon, { tintColor: theme.$iconColor }]} />
+            {notifications.length > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{notifications.length}</Text>
+              </View>
+            )}
           </View>
-        ) : (
-          <View style={{ flexDirection: 'row' }}>
-            <Image style={styles.meteoIcon} source={require('../../assets/icons/soleil.png')} />
-            <Text style={styles.headerTitle}>{t('loading')}</Text>
-          </View>
-        )}
-        <TouchableOpacity onPress={''}>
-          <Image source={require('../../assets/icons/notification.png')} style={[styles.icon, { tintColor: theme.$iconColor }]} />
         </TouchableOpacity>
       </View>
+
       <Tab.Navigator
         initialRouteName="Home"
         barStyle={{ backgroundColor: '#58c487', height: 85 }}
@@ -91,25 +176,22 @@ const Accueil = ({ navigation, route }) => {
           options={{
             tabBarIcon: () => (
               <View style={[styles.homeIconWrapper, { backgroundColor: theme.$backgroundColor }]}>
-                <LottieView
-                  source={require('../../assets/lottiefile/robot_loading.json')}
-                  autoPlay
-                  loop
-                  style={styles.animation}
-                />
+                <LottieView source={require('../../assets/lottiefile/robot_loading.json')} autoPlay loop style={styles.animation} />
               </View>
             ),
-            tabBarLabel:'',
+            tabBarLabel: '',
           }}
         />
+     
         <Tab.Screen
-          name="Security"
-          component={Security}
-          options={{
-            tabBarIcon: () => <Image style={[styles.image, { tintColor: theme.$iconColor }]} source={require('../../assets/icons/security.png')} />,
-            tabBarLabel: t('security'),
-          }}
-        />
+  name="Security"
+  options={{
+    tabBarIcon: () => <Image style={[styles.image, { tintColor: theme.$iconColor }]} source={require('../../assets/icons/security.png')} />,
+    tabBarLabel: t('security'),
+  }}
+>
+  {() => <Security addNotification={addNotification} navigation={navigation} />}
+</Tab.Screen>
         <Tab.Screen
           name="Automation"
           component={Automation}
@@ -119,6 +201,21 @@ const Accueil = ({ navigation, route }) => {
           }}
         />
       </Tab.Navigator>
+
+      {/* Notification Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent={false}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.$backgroundColor }]}>
+          <Text style={[styles.modalTitle, { color: theme.$textColor }]}>Notifications</Text>
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderNotificationItem}
+          />
+          <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -197,6 +294,78 @@ const styles = EStyleSheet.create({
   animation: {
     width: 100,
     height: 100,
+  },
+  notificationIconWrapper: {
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: -6,
+    top: -6,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    marginTop :'20%'
+  },
+  notificationItem: {
+    marginHorizontal : 5,
+    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    paddingVertical: 15,
+    marginBottom: 10,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  notificationMessage: {
+    fontSize: 16,
+  },
+  notificationTime: {
+    fontSize: 12,
+    color: '#888',
+  },
+  closeButton: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: '#58c487',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 18,
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '90%',
+    borderRadius :20
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 

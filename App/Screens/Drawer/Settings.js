@@ -52,7 +52,7 @@ const Settings = () => {
               <FontAwesome5 
                 name="sun" 
                 size={isDarkTheme ? 20 : 35} 
-                color={isDarkTheme ? '#ccc' : '#f0ee9d'} 
+                color={isDarkTheme ? '#ccc' : 'rgba(255, 200, 45,1)'} 
               />
             </View>
             <Switch
@@ -65,7 +65,7 @@ const Settings = () => {
               <FontAwesome5 
                 name="moon" 
                 size={isDarkTheme ? 35 : 20} 
-                color={isDarkTheme ? '#89b1cc' : '#000'} 
+                color={isDarkTheme ? 'rgba(130, 126, 213, 1)' : '#000'} 
               />
             </View>
           </View>

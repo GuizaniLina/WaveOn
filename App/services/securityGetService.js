@@ -22,7 +22,7 @@ const securityGetService = async (idclient, iduser, idNetwork, token) => {
             commandLastId: 0,
             permissionsLastUpdate: lastUpdate,
             roomsLastUpdate: roomslastUpdate,
-            automationLastUpdate: automationlastUpdate
+            securityLastUpdate: securitylastUpdate
         };
 
         // Appeler le service web
@@ -32,7 +32,7 @@ const securityGetService = async (idclient, iduser, idNetwork, token) => {
             await AsyncStorage.setItem('securityOption', JSON.stringify(response.data.securityOption));
             await AsyncStorage.setItem('securityConfig', JSON.stringify(response.data.securityConfig));
             await AsyncStorage.setItem('securityTriggers', JSON.stringify(response.data.securityTriggers));
-            await AsyncStorage.setItem(`securitylastUpdate_${idclient}`, JSON.stringify(response.data.securityLastUpdate));
+            await AsyncStorage.setItem(`securitylastUpdate_${idclient}`, response.data.securityLastUpdate.toString());
             console.log('Données des securités stockées avec succès');
         } else {
             console.error('Réponse invalide du service');
