@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
-const downloadFile = async (idclient, iduser, token) => {
+const downloadFile = async (idclient, iduser, token,navigation) => {
     try {
         const initialDate = '2019-10-01 01:01:01';
         const lastUpdate =  initialDate;
@@ -24,6 +24,18 @@ const downloadFile = async (idclient, iduser, token) => {
      
 
         const response = await axios.post(`${BASE_URL}/downloadFile/`, requestPayload);
+        
+        if (response.data.idclient === -1 || response.data.token === null) {
+            // Authentication error detected, clear AsyncStorage and navigate to login
+            await AsyncStorage.multiRemove(['token', 'user', 'idclient', 'iduser', 'user_email', 'user_passwordMQTT', 'user_isadmin', 'user_isgateway']);
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }], 
+                })
+            );
+            return null; 
+        }
        
         const serverLastUpdate = response.headers['lastupdate'] || lastUpdate;
     //    await AsyncStorage.setItem(`nodes_${idclient}`, JSON.stringify(response.data.nodes));

@@ -114,7 +114,7 @@ const SecurityConfig = ({ navigation }) => {
         alarmPassKey: null
       };
 
-      await securityUpdateService(idclient, iduser, idNetwork, token, securityOption, updateSecurityConfig, updateSecurityTriggers);
+      await securityUpdateService(idclient, iduser, idNetwork, token, securityOption, updateSecurityConfig, updateSecurityTriggers,navigation);
       await AsyncStorage.setItem('securityConfig', JSON.stringify(updateSecurityConfig));
 
       Alert.alert(t('success'), t('security_config_updated'));

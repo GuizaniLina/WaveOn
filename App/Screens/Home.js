@@ -31,7 +31,7 @@ const Home = () => {
       setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
       setIsGateway(await AsyncStorage.getItem('user_isgateway'));
 
-      const roomResponse = await roomGetService(idclient, iduser, idNetwork, token);
+      const roomResponse = await roomGetService(idclient, iduser, idNetwork, token,navigation);
       setRooms(roomResponse.rooms);
       setAssignments(roomResponse.assignments);
 
@@ -42,21 +42,21 @@ const Home = () => {
         roomsArray = typeof roomResponse.rooms === 'string' ? JSON.parse(roomResponse.rooms) : roomResponse.rooms;
       } catch (error) {
         console.error('Erreur lors du parsing des données des salles:', error);
-        Alert.alert('Erreur', 'Erreur lors de la récupération des données des salles');
+       
       }
 
       try {
         assignmentsArray = typeof roomResponse.assignments === 'string' ? JSON.parse(roomResponse.assignments) : roomResponse.assignments;
       } catch (error) {
         console.error('Erreur lors du parsing des données des affectations:', error);
-        Alert.alert('Erreur', 'Erreur lors de la récupération des données des affectations');
+        
       }
 
       const deviceCountByRoom = countDevicesByRoom(roomsArray, assignmentsArray);
       setDeviceCount(deviceCountByRoom);
     } catch (error) {
       console.error('Erreur lors de la récupération des données des salles:', error);
-      Alert.alert('Erreur', 'Échec de la récupération des données des salles');
+      
     } finally {
       setIsLoading(false); // Set loading to false once data is loaded
     }

@@ -36,29 +36,50 @@ import DeviceSelectorScreen from './App/Screens/DeviceSelectorScreen';
 import './App/i18n'; // Import the i18n configuration
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, View } from 'react-native';
-
+// Navigation setup
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(null); // null to indicate loading state
-  const { i18n } = useTranslation();
+  const [loading, setLoading] = useState(true); // Track the loading state
+  const { i18n } = useTranslation(); // Initialize i18n for translations
 
+  // Check if the user is logged in by verifying the token
   useEffect(() => {
     const checkLoginStatus = async () => {
-      const userToken = await AsyncStorage.getItem('token');
-      const savedLanguage = await AsyncStorage.getItem('language');
-      if (savedLanguage) {
-        i18n.changeLanguage(savedLanguage); // Use react-i18next to change language
+      try {
+        const userToken = await AsyncStorage.getItem('token');
+        const savedLanguage = await AsyncStorage.getItem('language');
+
+        if (savedLanguage) {
+          i18n.changeLanguage(savedLanguage); // Use react-i18next to change language
+        }
+
+        setIsLoggedIn(!!userToken); // Set login status based on token existence
+      } catch (error) {
+        console.error('Error checking login status:', error);
+        setIsLoggedIn(false); // On error, assume not logged in
+      } finally {
+        setLoading(false); // Stop loading after check
       }
-      setIsLoggedIn(!!userToken); // Set the login status
     };
 
     checkLoginStatus();
-  }, []);
+  }, [i18n]);
 
-  if (isLoggedIn === null) {
-    // Show loading indicator while checking login status
+  // Handle user logout
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token'); // Clear token from storage
+      setIsLoggedIn(false); // Mark user as logged out
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  // If the app is still checking the login status, show a loading indicator
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -66,21 +87,13 @@ export default function App() {
     );
   }
 
-  // Reset the navigation stack after successful login
-  const handleLoginSuccess = () => {
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [{ name: 'HomeScreen' }], // Replace 'HomeScreen' with your main screen
-      })
-    );
-    setIsLoggedIn(true); // Update the state to reflect login status
-  };
-
-  // Define StackNavigator inside the main component to access isLoggedIn
+  // Stack navigator for login and post-login screens
   const StackNavigator = () => (
-    <Stack.Navigator initialRouteName={ isLoggedIn? 'HomeScreen' :'WelcomeScreen'} screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
+    <Stack.Navigator
+      initialRouteName={isLoggedIn ? 'HomeScreen' : 'WelcomeScreen'}
+      screenOptions={{ headerShown: false }}
+    >
+     <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
       <Stack.Screen name="Signup" component={Signup} options={{ headerShown: false }} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
@@ -108,15 +121,13 @@ export default function App() {
     </Stack.Navigator>
   );
 
-  // Initialize the theme based on your preference
-  const themeType = "light"; // or "dark"
-
+  // Drawer navigator for the main app after login
   return (
-    <ThemeProvider themeType={themeType}>
+    <ThemeProvider>
       <NavigationContainer>
         {isLoggedIn ? (
           <Drawer.Navigator
-            drawerContent={(props) => <CustomDrawerContent {...props} />}
+            drawerContent={(props) => <CustomDrawerContent {...props} onLogout={handleLogout} />}
             screenOptions={{ headerShown: false }}
             drawerStyle={{ backgroundColor: '#333', width: 240 }}
           >
@@ -126,6 +137,7 @@ export default function App() {
             <Drawer.Screen name="Proxy Filter" component={Proxy} />
             <Drawer.Screen name="Networks" component={Networks} />
             <Drawer.Screen name="Manage Users" component={ManageUsers} />
+            {/* Add other drawer screens here */}
           </Drawer.Navigator>
         ) : (
           <StackNavigator />

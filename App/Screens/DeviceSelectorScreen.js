@@ -135,7 +135,7 @@ const DeviceSelectorScreen = ({ navigation, route }) => {
       const updateSecurityConfig = JSON.parse(await AsyncStorage.getItem('securityConfig'));
 
       // Call the security update service
-      await securityUpdateService(idclient, iduser, idNetwork, token, securityOption, updateSecurityConfig, updateSecurityTriggers);
+      await securityUpdateService(idclient, iduser, idNetwork, token, securityOption, updateSecurityConfig, updateSecurityTriggers,navigation);
 
       console.log('Security options updated successfully on the server');
     } catch (error) {

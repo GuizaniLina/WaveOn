@@ -118,7 +118,7 @@ const RoomFormScreen = ({ navigation, route }) => {
                 .filter(assignment => assignment.idRoom !== idRoom)
                 .concat(newRoomAssignments);
 
-            await roomUpdateService(idclient, iduser, token, updatedRooms, updatedAssignments);
+            await roomUpdateService(idclient, iduser, token, updatedRooms, updatedAssignments,navigation);
             navigation.goBack();
         } catch (error) {
             Alert.alert('Error', 'Error saving room');

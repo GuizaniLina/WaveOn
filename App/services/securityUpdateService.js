@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
-const securityUpdateService = async (idclient, iduser, idNetwork, token, securityOption ,updateSecurityConfig ,updateSecurityTriggers) => {
+const securityUpdateService = async (idclient, iduser, idNetwork, token, securityOption ,updateSecurityConfig ,updateSecurityTriggers,navigation) => {
   try {
     const formatDateTime = (date) => {
       const year = date.getFullYear();
@@ -29,6 +29,19 @@ const securityUpdateService = async (idclient, iduser, idNetwork, token, securit
     
     console.log('Request Data:', requestData);
     const response = await axios.post(`${BASE_URL}/SecurityUpdateService/`, requestData);
+
+    if (response.data.id === -1 || response.data.value === 'Athentification error') {
+      // Authentication error detected, clear AsyncStorage and navigate to login
+      await AsyncStorage.multiRemove(['token', 'user', 'idclient', 'iduser', 'user_email', 'user_passwordMQTT', 'user_isadmin', 'user_isgateway']);
+      navigation.dispatch(
+          CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Login' }], 
+          })
+      );
+      return null; 
+  }
+
 
     if (response.data.value === 'Must Be Admin Or Gateway') {
       throw new Error('You must be an admin or gateway to perform this action');

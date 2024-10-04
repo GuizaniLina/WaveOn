@@ -1,57 +1,57 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native'; // For navigating to the login screen
 
 const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
-const roomGetService = async (idclient, iduser, idNetwork, token) => {
+const roomGetService = async (idclient, iduser, idNetwork, token, navigation) => {
     try {
-        // Obtenir la date de la dernière mise à jour depuis AsyncStorage
         const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2020-01-01 00:00:00';
         const automationlastUpdate = await AsyncStorage.getItem(`automationlastUpdate_${idclient}`) || '2020-01-01 00:00:00';
         const securitylastUpdate = await AsyncStorage.getItem(`securitylastUpdate_${idclient}`) || '2020-01-01 00:00:00';
         const roomslastUpdate = await AsyncStorage.getItem(`roomslastUpdate_${idclient}`) || '2020-01-01 00:00:00';
 
-
-        // Structure de la requête
         const requestData = {
             idclient,
             iduser,
             idNetwork,
             token,
-            lastupdate:lastUpdate,
+            lastupdate: lastUpdate,
             commandLastId: 0,
-            permissionsLastUpdate:lastUpdate,
-            roomsLastUpdate:roomslastUpdate,
-            automationLastUpdate: automationlastUpdate
-
+            permissionsLastUpdate: lastUpdate,
+            roomsLastUpdate: roomslastUpdate,
+            automationLastUpdate: automationlastUpdate,
         };
 
-        // Appeler le service web
-        const response = await axios.post(`${BASE_URL}/RoomGetService/`,requestData);
+        const response = await axios.post(`${BASE_URL}/RoomGetService/`, requestData);
+
+        if (response.data.idclient === -1 || response.data.token === null) {
+            // Authentication error detected, clear AsyncStorage and navigate to login
+            await AsyncStorage.multiRemove(['token', 'user', 'idclient', 'iduser', 'user_email', 'user_passwordMQTT', 'user_isadmin', 'user_isgateway']);
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }], 
+                })
+            );
+            return null; 
+        }
+
+        // If authentication is successful, store the received data
         if (response.data && response.data.rooms && response.data.assignments) {
             await AsyncStorage.setItem('rooms', JSON.stringify(response.data.rooms));
             await AsyncStorage.setItem('assignments', JSON.stringify(response.data.assignments));
             await AsyncStorage.setItem(`roomslastUpdate_${idclient}`, response.data.roomsLastUpdate.toString());
-            console.log('Données des salles stockées avec succès');
+            console.log('Room data stored successfully');
         } else {
-            console.error('Réponse invalide du service');
+            console.error('Invalid response from service');
         }
-        // Vérifier si la réponse est correcte
-     /*   if (response.status === 200 && response.data.token === 'ok') {
-            // Sauvegarder la nouvelle date de mise à jour dans AsyncStorage
-            const serverLastUpdate = response.data.roomsLastUpdate;
-            await AsyncStorage.setItem('lastUpdate', serverLastUpdate);*/
 
-            // Retourner les données
-            return response.data;
-       /* } else {
-            throw new Error('Échec de la récupération des données des salles : ' + response.statusText);
-        }*/
+        return response.data; 
 
- 
     } catch (error) {
-        console.error('Erreur lors de la récupération des données des salles:', error);
-        throw new Error('Échec de la récupération des données des salles : ' + error.message);
+        console.error('Error fetching room data:', error);
+        throw new Error('Failed to fetch room data: ' + error.message);
     }
 };
 

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
-const automationGetService = async (idclient, iduser, idNetwork, token) => {
+const automationGetService = async (idclient, iduser, idNetwork, token,navigation) => {
   try {
     // Get the last update dates from AsyncStorage
     const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2020-01-01 00:00:00';
@@ -26,6 +26,18 @@ const automationGetService = async (idclient, iduser, idNetwork, token) => {
 
     // Call the web service
     const response = await axios.post(`${BASE_URL}/AutomationGetService/`, requestData);
+    
+    if (response.data.idclient === -1 || response.data.token === null) {
+      // Authentication error detected, clear AsyncStorage and navigate to login
+      await AsyncStorage.multiRemove(['token', 'user', 'idclient', 'iduser', 'user_email', 'user_passwordMQTT', 'user_isadmin', 'user_isgateway']);
+      navigation.dispatch(
+          CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Login' }], 
+          })
+      );
+      return null; 
+  }
 
     if (response.data && response.data.automations) {
       // Store data in AsyncStorage

@@ -213,7 +213,7 @@ const RoomDetails = ({ route }) => {
       const updatedAssignments = assignments.filter(assignment => assignment.idRoom !== roomId);
 
       // Save the updated data
-      await roomUpdateService(idclient, iduser, token, updatedRooms, updatedAssignments);
+      await roomUpdateService(idclient, iduser, token, updatedRooms, updatedAssignments,navigation);
 
       // Navigate back after deletion
       navigation.goBack();
@@ -317,7 +317,7 @@ const RoomDetails = ({ route }) => {
 
         {/* Control Container for Porte */}
         <View style={styles.controlContainer}>
-          {hasPorte && (
+          
             <View style={[styles.twoContainer, !hasPorte && styles.disabledContainer]}>
               <Image source={require('../../assets/icons/garage1.png')} style={styles.icon} />
               <Text style={styles.twoDeviceName}>{getPorteName()}</Text>
@@ -329,7 +329,7 @@ const RoomDetails = ({ route }) => {
                 disabled={!hasPorte}
               />
             </View>
-          )}
+          
         </View>
 
         {/* Device List Container for Lamps, Blinds, Prise */}

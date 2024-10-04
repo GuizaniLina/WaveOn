@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import  Camera  from 'expo-camera';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import { SwipeListView } from 'react-native-swipe-list-view';
+import { throttle } from 'lodash';
 
 export default function Devices({ navigation }) {
   const { theme } = useContext(ThemeContext);
@@ -181,7 +182,8 @@ export default function Devices({ navigation }) {
     const handlePressLamp1 = () => {
       toggleDeviceState(node, 0);
     };
-
+   
+    
     const handlePressLamp2 = () => {
       toggleDeviceState(node, 1);
     };

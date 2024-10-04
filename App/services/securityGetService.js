@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = 'https://iot.waveon.tn/WS_WAVEON';
 
-const securityGetService = async (idclient, iduser, idNetwork, token) => {
+const securityGetService = async (idclient, iduser, idNetwork, token,navigation) => {
     try {
         // Obtenir la date de la dernière mise à jour depuis AsyncStorage
         const lastUpdate = await AsyncStorage.getItem(`lastUpdate_${idclient}`) || '2020-01-01 00:00:00';
@@ -27,6 +27,17 @@ const securityGetService = async (idclient, iduser, idNetwork, token) => {
 
         // Appeler le service web
         const response = await axios.post(`${BASE_URL}/SecurityGetService/`,requestData);
+        if (response.data.idclient === -1 || response.data.token === null) {
+            // Authentication error detected, clear AsyncStorage and navigate to login
+            await AsyncStorage.multiRemove(['token', 'user', 'idclient', 'iduser', 'user_email', 'user_passwordMQTT', 'user_isadmin', 'user_isgateway']);
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }], 
+                })
+            );
+            return null; 
+        }
         if (response.data && response.data.securityOption && response.data.securityTriggers) {
             await AsyncStorage.setItem('security', JSON.stringify(response));
             await AsyncStorage.setItem('securityOption', JSON.stringify(response.data.securityOption));

@@ -43,8 +43,8 @@ const SwitchProfileScreen = () => {
           const password=  await AsyncStorage.getItem(`password_${profile.idclient}`);
           const response = await LoginService.login(profile.email,password);
           const { idclient, iduser, token } = response;
-          await downloadFile(idclient, iduser, token); 
-          startPeriodicPing(idclient, iduser, token);
+          await downloadFile(idclient, iduser, token,navigation); 
+          startPeriodicPing(idclient, iduser, token,navigation);
           await AsyncStorage.setItem('user', JSON.stringify(profile));
           setSelectedProfile(idclient);
           setProfileChanged(prev => !prev);

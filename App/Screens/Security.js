@@ -74,7 +74,7 @@ const Security = ({ navigation, addNotification }) => {
       setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
       setIsGateway(await AsyncStorage.getItem('user_isgateway'));
 
-      const securityResponse = await securityGetService(idclient, iduser, idNetwork, token);
+      const securityResponse = await securityGetService(idclient, iduser, idNetwork, token,navigation);
       setSecurityOptions(securityResponse.securityOption);
 
       const storedNotificationNodes = await AsyncStorage.getItem(`storedNotificationNodes_${USER_ID}`);
@@ -191,7 +191,7 @@ const Security = ({ navigation, addNotification }) => {
         const token = await AsyncStorage.getItem('token');
         const updateSecurityTriggers = JSON.parse(await AsyncStorage.getItem('securityTriggers'));
 
-        await securityUpdateService(idclient, iduser, idNetwork, token, updatedOptions, securityConfig, updateSecurityTriggers);
+        await securityUpdateService(idclient, iduser, idNetwork, token, updatedOptions, securityConfig, updateSecurityTriggers,navigation);
       } catch (error) {
         console.error(t('update_option_error'), error);
       }

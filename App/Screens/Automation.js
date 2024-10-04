@@ -41,7 +41,7 @@ const AutomationScreen = ({ navigation }) => {
       setIsAdmin(await AsyncStorage.getItem('user_isadmin'));
       setIsGateway(await AsyncStorage.getItem('user_isgateway'));
       
-      const automationResponse = await automationGetService(idclient, iduser, idNetwork, token);
+      const automationResponse = await automationGetService(idclient, iduser, idNetwork, token,navigation);
       console.log('Automation data:', automationResponse);
 
       const automationInstances = automationResponse.automations.map(autoData => new Automation(autoData));
@@ -110,7 +110,7 @@ const AutomationScreen = ({ navigation }) => {
       const idNetwork = 1;
       const token = await AsyncStorage.getItem('token');
   
-      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
+      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations,navigation);
       Alert.alert(t('success'), t('automation_updated'));
     } catch (error) {
       console.error('Error updating automation:', error);
@@ -130,7 +130,7 @@ const AutomationScreen = ({ navigation }) => {
       const idNetwork = 1;
       const token = await AsyncStorage.getItem('token');
   
-      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
+      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations,navigation);
     } catch (error) {
       console.error('Error saving automation:', error);
       Alert.alert(t('error'), t('automation_update_failed'));
@@ -147,7 +147,7 @@ const AutomationScreen = ({ navigation }) => {
       const idNetwork = 1;
       const token = await AsyncStorage.getItem('token');
   
-      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
+      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations,navigation);
       Alert.alert(t('success'), t('automation_deleted'));
     } catch (error) {
       console.error('Error deleting automation:', error);
@@ -165,7 +165,7 @@ const AutomationScreen = ({ navigation }) => {
       const idNetwork = 1;
       const token = await AsyncStorage.getItem('token');
   
-      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations);
+      await automationUpdateService(idclient, iduser, idNetwork, token, updatedAutomations,navigation);
       Alert.alert(t('success'), t('automation_added'));
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'automation:', error);

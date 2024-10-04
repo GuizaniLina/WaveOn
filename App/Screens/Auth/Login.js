@@ -20,10 +20,10 @@ const LoginScreen = () => {
       const response = await LoginService.login(email, password);
       const { idclient, iduser, token } = response;
       await AsyncStorage.setItem(`password_${idclient}`, password);
-      await downloadFile(idclient, iduser, token); // Download file on login
+      await downloadFile(idclient, iduser, token,navigation); // Download file on login
   
       // Start periodic ping
-      startPeriodicPing(idclient, iduser, token);
+      startPeriodicPing(idclient, iduser, token,navigation);
   
       // Store the token in AsyncStorage
       await AsyncStorage.setItem('token', token);

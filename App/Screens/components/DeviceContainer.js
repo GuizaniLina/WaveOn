@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 const DeviceContainer = ({ title, icon, sliderValues, infoIcons, onLongPress, onPress, onSliderChange,onDelete }) => {
   const { theme } = useContext(ThemeContext);
   const { t } = useTranslation();
-  const [sliderValue, setSliderValue] = useState(sliderValues.initial);
+  const [sliderValue, setSliderValue] = useState(sliderValues?.initial);
   const [isIncreasing, setIsIncreasing] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
   const renderRightActions = (progress, dragX) => {

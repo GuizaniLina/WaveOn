@@ -16,14 +16,12 @@ const CreateGroupScreen = ({ navigation, route }) => {
   const [nodes, setNodes] = useState([]);
   const [category, setCategory] = useState(group ? group.type : null); // Pre-fill category if editing
 
-  useEffect(() => {
-    fetchDevices();
-  }, []);
+ 
 
   const fetchDevices = async () => {
     try {
-      const USER_ID = await AsyncStorage.getItem('idclient');
-      const nodesString = await AsyncStorage.getItem(`nodes_${USER_ID}`);
+      const idclient = await AsyncStorage.getItem('idclient');
+      const nodesString = await AsyncStorage.getItem(`nodes_${idclient}`);
       if (nodesString) {
         const parsedNodes = JSON.parse(nodesString); // Load devices
         setNodes(parsedNodes);
@@ -32,6 +30,22 @@ const CreateGroupScreen = ({ navigation, route }) => {
       console.error('Error fetching devices:', error);
     }
   };
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+  useEffect(() => {
+    const checkProfileChange = async () => {
+      const idclient = await AsyncStorage.getItem('idclient');
+      const iduser = await AsyncStorage.getItem('iduser');
+      const token = await AsyncStorage.getItem('token');
+      if (idclient && iduser && token) {
+        fetchDevices();
+      }
+    };
+
+    const unsubscribe = navigation.addListener('focus', checkProfileChange);
+    return unsubscribe;
+  }, [navigation]);
 
   const handleCreateGroup = async () => {
     if (selectedDevices.length === 0 || !groupName) {
